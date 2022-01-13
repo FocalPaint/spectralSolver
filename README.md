@@ -13,7 +13,7 @@ python3 -m pip install git+https://github.com/colour-science/colour@develop
 python3 -m pip install matplotlib
 ```
 
-edit settings.py to adjust colorspace and paramaters (if necessary)
+edit settings.py to adjust colorspace and parameters (if necessary).  The default is sRGB and 8 spectral channels.  Look in tools.py to see how you can convert to/from and mix pigment colors in log.
 
 run the solver
 
