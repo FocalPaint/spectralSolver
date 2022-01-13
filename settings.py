@@ -32,7 +32,7 @@ numwaves = 8
 waveVariance = 5.0
 
 # max iterations for solver
-maxiter = 5000
+maxiter = 20000
 
 # solve additional colors? see munsell.py
 # and add your own XYZ colors
