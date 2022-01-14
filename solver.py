@@ -1,4 +1,5 @@
 from colour.models.rgb.transfer_functions import linear
+from mystic.constraints import unique
 import numpy as np
 
 from colour.colorimetry import (SpectralDistribution)
@@ -6,6 +7,8 @@ from colour.colorimetry import (SpectralDistribution)
 from colour import XYZ_to_xy
 from mystic.solvers import diffev
 from mystic.monitors import VerboseMonitor
+
+from scipy.optimize import differential_evolution, LinearConstraint, Bounds
 
 from settings import *
 from tools import *
@@ -46,11 +49,22 @@ def XYZ_to_spectral_colorspace(
 
     sd = np.repeat(0.0, numwaves)
 
+    global objectiveFunction
+    def objectiveFunction(a):
+        result = minimize_slope(a)
+        result += match_red(a)
+        result += match_green(a)
+        result += match_blue(a)
+        result += match_white(a)
+        result += varianceWaves(a)
+        result += uniqueWaves(a)
+        return result
+
     def minimize_slope(a):
         """
         Objective function.
         """
-        sds = extractSPDS(a, numwaves)
+        sds = np.exp(extractSPDS(a, numwaves))
         red_diff = np.sum(np.diff(sds[0]) ** 2)
         green_diff = np.sum(np.diff(sds[1]) ** 2)
         blue_diff = np.sum(np.diff(sds[2]) ** 2)
@@ -64,9 +78,9 @@ def XYZ_to_spectral_colorspace(
         sds = extractSPDS(a, numwaves)
         cmfs = extractCMFS(a, numwaves)
         illuminant = extractIlluminantSPD(a, numwaves)
-        T_MATRIX = generateT_MATRIX_XYZ(cmfs, illuminant)
+        tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
         sd[:] = np.exp(sds[0])
-        xyz = Spectral_to_XYZ(sd, T_MATRIX)
+        xyz = Spectral_to_XYZ(sd, tmat)
         
         diff = np.linalg.norm(xyz - XYZ[0])
         return diff * 1000.
@@ -78,9 +92,9 @@ def XYZ_to_spectral_colorspace(
         sds = extractSPDS(a, numwaves)
         cmfs = extractCMFS(a, numwaves)
         illuminant = extractIlluminantSPD(a, numwaves)
-        T_MATRIX = generateT_MATRIX_XYZ(cmfs, illuminant)
+        tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
         sd[:] = np.exp(sds[1])
-        xyz = Spectral_to_XYZ(sd, T_MATRIX)
+        xyz = Spectral_to_XYZ(sd, tmat)
 
         diff = np.linalg.norm(xyz - XYZ[1])
         return diff * 1000.
@@ -92,15 +106,15 @@ def XYZ_to_spectral_colorspace(
         sds = extractSPDS(a, numwaves)
         cmfs = extractCMFS(a, numwaves)
         illuminant = extractIlluminantSPD(a, numwaves)
-        T_MATRIX = generateT_MATRIX_XYZ(cmfs, illuminant)
+        tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
         sd[:] = np.exp(sds[2])
-        xyz = Spectral_to_XYZ(sd, T_MATRIX)
+        xyz = Spectral_to_XYZ(sd, tmat)
         
         diff = np.linalg.norm(xyz - XYZ[2])
         return diff * 1000.
 
     # we want the selected wavelengths extracted
-    # from the illuminand SPD to still match the xy
+    # from the illuminant SPD to still match the xy
     # so that a perfect reflector is still white
     def match_white(a):
         """
@@ -108,21 +122,21 @@ def XYZ_to_spectral_colorspace(
         """
         cmfs = extractCMFS(a, numwaves)
         illuminant = extractIlluminantSPD(a, numwaves)
-        T_MATRIX = generateT_MATRIX_XYZ(cmfs, illuminant)
-        xyz = Spectral_to_XYZ(illuminant, T_MATRIX)
+        tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
+        xyz = Spectral_to_XYZ(illuminant, tmat)
         xy = XYZ_to_xy(xyz)
         
         diff = np.linalg.norm(xy - illuminant_xy)
         return diff * 1000.
 
     # this is kind of impossible without a lot of wavelengths
-    def sum_to_one(a):
-        """
-        constrain to conserve energy. sum of r+g+b must == 1.0
-        """
-        sds = extractSPDS(a, numwaves)
-        sums = ((sds - 1.0)**2.0).sum()
-        return sums
+    # def sum_to_one(a):
+    #     """
+    #     constrain to conserve energy. sum of r+g+b must == 1.0
+    #     """
+    #     sds = extractSPDS(a, numwaves)
+    #     sums = ((sds - 1.0)**2.0).sum()
+    #     return sums
     
     # shouldn't need mix tests if things work out. . .
     # def mix_test(a):
@@ -190,11 +204,11 @@ def XYZ_to_spectral_colorspace(
     uniqWaves = linear_equality(uniqueWaves)
     varyWaves = linear_equality(varianceWaves)
     matchw = linear_equality(match_white)
-    sumone = linear_equality(sum_to_one)
+    # sumone = linear_equality(sum_to_one)
     # mixtest = linear_equality(mix_test)
     # mixtest2 = linear_equality(mix_test2)
 
-    @chain(matchr, matchg, matchb, matchw, uniqWaves, varyWaves, sumone)
+    @chain(matchr)#, matchg, matchb, matchw, uniqWaves, varyWaves)
     def penalty(x):
         return 0.0
 
@@ -213,18 +227,32 @@ def XYZ_to_spectral_colorspace(
     initialGuess = np.concatenate((np.random.rand(numwaves * 3) * -10 - 0.00001, np.random.rand(numwaves) * (end - begin) + begin))
     print(initialGuess)
 
-    result = diffev(
-        minimize_slope,
-        initialGuess,
+    constraints = ({'type': 'eq', 'fun': match_red},
+                   {'type': 'eq', 'fun': match_green},
+                   {'type': 'eq', 'fun': match_blue},
+                   {'type': 'eq', 'fun': match_white},
+                   {'type': 'eq', 'fun': uniqueWaves},
+                   {'type': 'eq', 'fun': varianceWaves})
+
+    result = differential_evolution(
+        objectiveFunction,
         bounds=bounds,
-        penalty=penalty,
-        npop=200,
-        itermon=stepmon,
-        constraints=simple,
-        ftol=1e-8,
-        gtol=200,
-        maxiter=maxiter
-        )
+        x0=initialGuess,
+        workers=1,
+        disp=True).x
+
+    # result = diffev(
+    #     minimize_slope,
+    #     initialGuess,
+    #     bounds=bounds,
+    #     penalty=penalty,
+    #     npop=npop,
+    #     itermon=stepmon,
+    #     constraints=simple,
+    #     ftol=1e-8,
+    #     gtol=100,
+    #     maxiter=maxiter
+    #     )
     sds = np.exp(extractSPDS(result, numwaves))
 
     waves = np.sort(np.asarray(result)[3 * numwaves:4 * numwaves])
@@ -272,7 +300,7 @@ def XYZ_to_spectral_1(
         """
         Objective function.
         """
-        diff = np.sum(np.diff(np.asarray(a) ** 2))
+        diff = np.sum(np.diff(np.exp(np.asarray(a)) ** 2))
         return  diff
 
     def match_XYZ(a):
@@ -313,11 +341,11 @@ def XYZ_to_spectral_1(
         initialGuess,
         bounds=bounds,
         penalty=penalty,
-        npop=200,
+        npop=npop,
         itermon=stepmon,
         constraints=simple,
         ftol=1e-8,
-        gtol=200,
+        gtol=2000,
         maxiter=maxiter
         )
     sdResult = np.exp(result)

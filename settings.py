@@ -4,13 +4,13 @@ import numpy as np
 
 # this is our model colorspace that was want to be multispectral
 # it's much easier to use a smaller gamut like sRGB, than wider gamutes
-# colorspace = colour.models.RGB_COLOURSPACE_P3_D65
+colorspace = colour.models.RGB_COLOURSPACE_P3_D65
 colorspace = colour.models.RGB_COLOURSPACE_sRGB
 
 # This is our target RGB colorspace
 # probably the same as our model
-colorspacetarget = colour.models.RGB_COLOURSPACE_sRGB
-# colorspacetarget = colour.models.RGB_COLOURSPACE_P3_D65
+#colorspacetarget = colour.models.RGB_COLOURSPACE_sRGB
+colorspacetarget = colour.models.RGB_COLOURSPACE_P3_D65
 
 # iOS/UIkit Metal uses sRGB primaries even if it is wide color <extended sRGB?>
 # use this for transforming to your device's screen if it needs to be different
@@ -22,17 +22,19 @@ colorspaceTargetDevice = colour.models.RGB_COLOURSPACE_sRGB
 # maybe makes sense to make this as narrow as possible
 # maybe not
 begin = 380.0 
-end = 730.0
+end = 680.0
 
 # number of wavelengths/channels to solve for
 # wavelengths will be non-uniformly spaced
 # and will penalize solutions with less than waveVariance
 # distance between channels
-numwaves = 8
-waveVariance = 5.0
+numwaves = 12
+waveVariance = 2.0
 
 # max iterations for solver
 maxiter = 20000
+# population size for diffev
+npop = 4
 
 # solve additional colors? see munsell.py
 # and add your own XYZ colors
