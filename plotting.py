@@ -10,12 +10,9 @@ colour_style()
 from settings import *
 from tools import *
 
-def plotSDS(spds, illuminant_SPD, mspds):
+def plotSDS(spds, illuminant_SPD):
     colour.plotting.plot_multi_sds([spds[0], spds[1], spds[2]], use_sds_colours=True, normalise_sds_colours=False)
     colour.plotting.plot_multi_sds([spds[0], spds[1], spds[2], illuminant_SPD], use_sds_colours=True, normalise_sds_colours=False)
-
-    if len(mspds) > 0:
-        colour.plotting.plot_multi_sds(mspds, use_sds_colours=True, normalise_sds_colours=False, legend_location='upper right' )
 
 def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
     # generate additional columns with 25% and 10% intensity
