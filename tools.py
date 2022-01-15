@@ -5,6 +5,7 @@ from settings import *
 
 def Spectral_to_RGB(spd, T_MATRIX):
     """Converts n segments spectral power distribution curve to RGB.
+    Undoes the offset applies during upsampling
     Based on work by Scott Allen Burns.
     """
     offset = 1.0 - WGM_EPSILON
@@ -16,7 +17,6 @@ def Spectral_to_RGB(spd, T_MATRIX):
 
 def Spectral_to_XYZ(spd, T_MATRIX):
     """Converts n segments spectral power distribution curve to XYZ.
-    Based on work by Scott Allen Burns.
     """
     XYZ = np.sum(spd * T_MATRIX, axis=1)
     return XYZ
@@ -25,13 +25,13 @@ def Spectral_to_XYZ(spd, T_MATRIX):
 def Spectral_Mix_WGM(spd_a, spd_b, ratio):
     """Mixes two SPDs via weighted geomtric mean and returns an SPD.
     Based on work by Scott Allen Burns.
-    Assumes log-encoded values
     """
     return np.exp(np.log(spd_a)*(1.0 - ratio) + np.log(spd_b)*ratio)
 
 def RGB_to_Spectral(rgb, spds):
     """Converts RGB to n segments spectral power distribution curve.
     Upsamples to spectral primaries and sums them together into one SPD
+    Applies an offset to avoid 0.0
     """
     offset = 1.0 - WGM_EPSILON
     r, g, b = rgb

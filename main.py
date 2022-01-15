@@ -4,7 +4,7 @@ import sys
 
 from colour.plotting import *
 
-from colour import (colorimetry)
+from colour import (XYZ_to_xy, SpectralDistribution)
 
 from scipy.optimize import differential_evolution, LinearConstraint, Bounds
 from solver import *
@@ -83,7 +83,7 @@ def match_red(a):
     xyz = Spectral_to_XYZ(sd, tmat)
     
     diff = np.linalg.norm(xyz - XYZ[0])
-    return diff * 1000.
+    return diff * 10000.
 
 def match_green(a):
     """
@@ -97,7 +97,7 @@ def match_green(a):
     xyz = Spectral_to_XYZ(sd, tmat)
 
     diff = np.linalg.norm(xyz - XYZ[1])
-    return diff * 1000.
+    return diff * 10000.
 
 def match_blue(a):
     """
@@ -111,7 +111,7 @@ def match_blue(a):
     xyz = Spectral_to_XYZ(sd, tmat)
     
     diff = np.linalg.norm(xyz - XYZ[2])
-    return diff * 1000.
+    return diff * 10000.
 
 # we want the selected wavelengths extracted
 # from the illuminant SPD to still match the xy
