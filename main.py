@@ -16,13 +16,9 @@ np.set_printoptions(formatter={"float": "{:0.15f}".format}, threshold=sys.maxsiz
 
 red_XYZ =  colour.RGB_to_XYZ([1.0,WGM_EPSILON,WGM_EPSILON], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
 green_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,1.0,WGM_EPSILON], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
-blue_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,WGM_EPSILON,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m) #colour.sRGB_to_XYZ([0,0,1])
+blue_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,WGM_EPSILON,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
 
 XYZ = [red_XYZ, green_XYZ, blue_XYZ]
-
-# singleXYZ = None
-
-# Spectral_to_XYZ_m = None
 
 def func(a):
     return 0.0
@@ -240,32 +236,3 @@ if __name__ == '__main__':
     if plotMixes:
         plotSDS([red_sd, green_sd, blue_sd], illuminant_sd)
         plotColorMixes(Spectral_to_XYZ_m, Spectral_to_Device_RGB_m, [red_sd, green_sd, blue_sd])
-
-
-# red_XYZ =  colour.RGB_to_XYZ([1.0,WGM_EPSILON,WGM_EPSILON], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
-# green_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,1.0,WGM_EPSILON], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
-# blue_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,WGM_EPSILON,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m) #colour.sRGB_to_XYZ([0,0,1])
-
-# XYZs = [red_XYZ, green_XYZ, blue_XYZ]
-
-# # actually solve the SPDs
-# if __name__ == '__main__':
-#     red_sd, green_sd, blue_sd, waves, illuminant, cmfs, Spectral_to_XYZ_m, Spectral_to_RGB_m = XYZ_to_spectral_colorspace(XYZs)
-#     waves = red_sd.wavelengths
-#     Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant.values, XYZ_to_RGB_Device_m)
-
-#     mspds = []
-#     if solveAdditionalXYZs:
-#         mspds = calcMunsellColors(Spectral_to_XYZ_m, waves)
-
-
-
-
-#     if solveAdditionalXYZs:
-#         print("munsell/additional colors are")
-#         for mspd in mspds:
-#             print(np.array2string(mspd.values, separator=', '))
-
-#     if plotMixes:
-#         plotSDS([red_sd, green_sd, blue_sd], illuminant, mspds)
-#         plotColorMixes(Spectral_to_XYZ_m, Spectral_to_Device_RGB_m, [red_sd, green_sd, blue_sd])
