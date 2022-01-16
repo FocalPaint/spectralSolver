@@ -50,9 +50,8 @@ def match_XYZ(a, targetXYZ, Spectral_to_XYZ_m):
     """
     sd[:] = np.exp(np.asarray(a))
     xyz = Spectral_to_XYZ(sd, Spectral_to_XYZ_m)
-    # diff = np.linalg.norm(xyz - targetXYZ)
-    diff = JNDifference(xyz, targetXYZ)
-    return diff
+    diff = np.linalg.norm(xyz - targetXYZ)
+    return diff * 100.
 
 def minimize_slope(a):
     """
@@ -83,9 +82,8 @@ def match_red(a):
     sd[:] = np.exp(sds[0])
     xyz = Spectral_to_XYZ(sd, tmat)
     
-    #diff = np.linalg.norm(xyz - XYZ[0])
-    diff = JNDifference(xyz, XYZ[0])
-    return diff 
+    diff = np.linalg.norm(xyz - XYZ[0])
+    return diff * 10000.
 
 def match_green(a):
     """
@@ -98,9 +96,8 @@ def match_green(a):
     sd[:] = np.exp(sds[1])
     xyz = Spectral_to_XYZ(sd, tmat)
 
-    #diff = np.linalg.norm(xyz - XYZ[1])
-    diff = JNDifference(xyz, XYZ[1])
-    return diff
+    diff = np.linalg.norm(xyz - XYZ[1])
+    return diff * 10000.
 
 def match_blue(a):
     """
@@ -113,9 +110,8 @@ def match_blue(a):
     sd[:] = np.exp(sds[2])
     xyz = Spectral_to_XYZ(sd, tmat)
     
-    #diff = np.linalg.norm(xyz - XYZ[2])
-    diff = JNDifference(xyz, XYZ[2])
-    return diff
+    diff = np.linalg.norm(xyz - XYZ[2])
+    return diff * 10000.
 
 # we want the selected wavelengths extracted
 # from the illuminant SPD to still match the xy
@@ -130,9 +126,8 @@ def match_white(a):
     xyz = Spectral_to_XYZ(illuminant, tmat)
     xy = XYZ_to_xy(xyz)
     
-    #diff = np.linalg.norm(xy - illuminant_xy)
-    diff = JNDifference(xyz, illuminant_XYZ)
-    return diff
+    diff = np.linalg.norm(xy - illuminant_xy)
+    return diff * 1000.
 
 # having duplicate wavelengths is an error for Colour library
 # (and probably doesn't make sense)

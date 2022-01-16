@@ -1,7 +1,5 @@
 import numpy as np
 from settings import *
-from colour.difference import delta_E_CIE1976
-from colour import XYZ_to_Lab
 
 
 
@@ -69,12 +67,3 @@ def generateT_MATRIX_XYZ(cmfs, illuminant):
     T_MATRIX = (np.matmul(cmfs_, np.diag(illuminant)) # weight for whitepoint
                                / np.matmul(cmfs_[1], illuminant))
     return T_MATRIX
-
-def JNDifference(xyza, xyzb):
-    laba = XYZ_to_Lab(xyza)
-    labb = XYZ_to_Lab(xyzb)
-    difference = delta_E_CIE1976(laba, labb)
-    if difference > 1.0:
-        return difference ** 2.0
-    else:
-        return 0.0
