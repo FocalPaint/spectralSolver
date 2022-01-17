@@ -31,7 +31,7 @@ def objectiveFunction(a):
     illuminant = extractIlluminantSPD(a, numwaves)
     tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
 
-    result = minimize_slopes(a) / 100.
+    result = minimize_slopes(sds) / 100.
     result += match_XYZ(sds[0], XYZ[0], tmat) * 10000.
     result += match_XYZ(sds[1], XYZ[1], tmat) * 10000.
     result += match_XYZ(sds[2], XYZ[2], tmat) * 100000.
@@ -42,9 +42,12 @@ def objectiveFunction(a):
     # nudge b+y = green
     yellow = sds[0] + sds[1]
     result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) * 100.
-    # nudge b+w towards cyan
-    cyan = sds[1] + sds[2]
+    # nudge b+w towards desaturated cyan
+    cyan = sds[1] + sds[2] + (sds[0] * 0.3)
     result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) * 100.
+    # nudge b+r should be purple
+    purple = sds[0] + sds[2]
+    result += mix_test(sds[0], sds[2], purple, 0.5, tmat) * 100.
 
     # penalize large drop in luminance when mixing primaries
     result += luminance_drop(sds[0], sds[1], 0.5, tmat) * 1000.
@@ -107,11 +110,10 @@ def minimize_slope(a):
     diff = np.sum(np.diff(np.asarray(a) ** 2))
     return  diff
 
-def minimize_slopes(a):
+def minimize_slopes(sds):
     """
-    minimize multipel slopes
+    minimize multiple slopes
     """
-    sds = extractSPDS(a, numwaves)
     red_diff = np.sum(np.diff(sds[0]) ** 2)
     green_diff = np.sum(np.diff(sds[1]) ** 2)
     blue_diff = np.sum(np.diff(sds[2]) ** 2)
@@ -140,11 +142,11 @@ def varianceWaves(a):
 
 from settings import *
 if __name__ == '__main__':
-    spdBounds = (-12, -0.00001)
+    spdBounds = (WGM_EPSILON, 1.0 - WGM_EPSILON)
     waveBounds = (begin, end)
     from itertools import repeat
     bounds = tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat(waveBounds, numwaves))
-    initialGuess = np.concatenate((np.repeat(-0.00001, (numwaves * 3)), np.linspace(begin, end, num=numwaves, endpoint=True)))
+    initialGuess = np.concatenate((np.repeat((1.0 - WGM_EPSILON), (numwaves * 3)), np.linspace(begin, end, num=numwaves, endpoint=True)))
     print("initial guess is", initialGuess)
 
     result = differential_evolution(
@@ -197,8 +199,10 @@ if __name__ == '__main__':
         mspds = []
         for targetXYZ in additionalXYZs:
             boundsSingle = tuple(repeat(spdBounds, numwaves))
+            initialGuess = np.repeat(1.0 - WGM_EPSILON, numwaves)
             result = differential_evolution(
                 objectiveFunctionSingle,
+                x0=initialGuess,
                 bounds=boundsSingle,
                 args=(targetXYZ, spectral_to_XYZ_m),
                 workers=workers,
@@ -207,7 +211,7 @@ if __name__ == '__main__':
                 popsize=npop,
                 disp=True).x
             #mspd = XYZ_to_spectral_1(np.array(munseltarglTarget), T_MATRIX, waves=waves)
-            mspds.append(np.exp(result))
+            mspds.append(result)
 
     print("optimal (maybe) wavelengths:", np.array2string(waves, separator=', '))
 
