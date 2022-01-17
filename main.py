@@ -42,7 +42,7 @@ def objectiveFunction(a):
 
 def objectiveFunctionSingle(a, targetXYZ, Spectral_to_XYZ_m):
     result = minimize_slope(a)
-    result += match_XYZ(a, targetXYZ, Spectral_to_XYZ_m)
+    result += match_XYZ(a, targetXYZ, Spectral_to_XYZ_m) * 10000.
     return result
 
 def match_XYZ(a, targetXYZ, Spectral_to_XYZ_m):
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     waveBounds = (begin, end)
     from itertools import repeat
     bounds = tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat(waveBounds, numwaves))
-    initialGuess = np.concatenate((np.repeat(-0.00001, (numwaves * 3)), np.random.rand(numwaves) * (end - begin) + begin))
+    initialGuess = np.concatenate((np.repeat(-0.00001, (numwaves * 3)), np.linspace(begin, end, num=numwaves, endpoint=True)))
     print("initial guess is", initialGuess)
 
     result = differential_evolution(
