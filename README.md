@@ -21,7 +21,7 @@ run the solver
 python3 main.py
 ```
 
-Output will spit out the primary spectral distrubtions and some matrices.  The `Spectral_to_XYZ_m` is the only one you really need, you can combine with any XYZ to RGB matrix to get to RGB from there. `Spectral_to_RGB_m` will get you back to the original color space, while `Spectral_to_Device_RGB_m` is intended for weird scenarios like iPad where you need to use sRGB primaries even if your colorspace was originally DisplayP3.
+Output will spit out the primary spectral distrubtions and some matrices.  The `spectral_to_XYZ_m` is the only one you really need, you can combine with any XYZ to RGB matrix to get to RGB from there. `spectral_to_RGB_m` will get you back to the original color space, while `Spectral_to_Device_RGB_m` is intended for weird scenarios like iPad where you need to use sRGB primaries even if your colorspace was originally DisplayP3.
 
 ```
 Generation 197 has ChiSquare: 19450.319044
@@ -49,7 +49,7 @@ Spectral blue is
 [0.999990000050000, 0.069412518874038, 0.018702055417155,
  0.027715468817236, 0.793292459419939, 0.881241745509140,
  0.750431552708948, 0.999990000050000]
-Spectral_to_XYZ_m is
+spectral_to_XYZ_m is
 [[0.160911702209152, 0.010536082264362, 0.335863234341330,
   0.392091779907267, 0.003577037160754, 0.001199280922560,
   0.000744951625635, 0.000502994513244],
@@ -59,7 +59,7 @@ Spectral_to_XYZ_m is
  [0.946532443606047, 0.068580748489464, 0.001308663025418,
   0.000093394132679, 0.000000000000000, 0.000000000000000,
   0.000000000000000, 0.000000000000000]]
-Spectral_to_RGB_m is
+spectral_to_RGB_m is
 [[-0.009751444231376, -0.465453116724931, 0.352808002267490,
   0.996449910264658, 0.009607180544409, 0.003221020036560,
   0.002000785634738, 0.001350938947967],

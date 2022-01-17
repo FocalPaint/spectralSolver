@@ -7,7 +7,7 @@ from tools import *
 
 def extractSPDS(a, numwaves):
     sds = np.asarray(a)[:3 * numwaves].reshape((3, numwaves))
-    return sds
+    return np.exp(sds)
     
 def extractCMFS(a, numwaves):
     cmfs = np.array([[]])

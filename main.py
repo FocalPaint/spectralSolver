@@ -30,36 +30,54 @@ def objectiveFunction(a):
     cmfs = extractCMFS(a, numwaves)
     illuminant = extractIlluminantSPD(a, numwaves)
     tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
+
     result = minimize_slopes(a) / 100.
     result += match_XYZ(sds[0], XYZ[0], tmat) * 10000.
     result += match_XYZ(sds[1], XYZ[1], tmat) * 10000.
-    result += match_XYZ(sds[2], XYZ[2], tmat) * 10000.
-    result += match_xy(illuminant, illuminant_XYZ, tmat) * 100.
+    result += match_XYZ(sds[2], XYZ[2], tmat) * 100000.
+    result += match_xy(illuminant, illuminant_XYZ, tmat) * 10000.
     result += varianceWaves(a) / 100.
     result += uniqueWaves(a)
+    
+    # nudge b+y = green
+    yellow = sds[0] + sds[1]
+    result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) * 100.
+    # nudge b+w towards cyan
+    cyan = sds[1] + sds[2]
+    result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) * 100.
     return result
 
 
-def objectiveFunctionSingle(a, targetXYZ, Spectral_to_XYZ_m):
+def objectiveFunctionSingle(a, targetXYZ, spectral_to_XYZ_m):
     result = minimize_slope(a)
-    result += match_XYZ(a, targetXYZ, Spectral_to_XYZ_m) * 10000.
+    result += match_XYZ(a, targetXYZ, spectral_to_XYZ_m) * 10000.
     return result
 
-def match_XYZ(a, targetXYZ, Spectral_to_XYZ_m):
+def mix_test(sda, sdb, targetsd, ratio, tmat):
+    mixed = spectral_Mix_WGM(sda, sdb, ratio)
+    mixedXYZ = spectral_to_XYZ(mixed, tmat)
+    mixedxy = XYZ_to_xy(mixedXYZ)
+    targetXYZ = spectral_to_XYZ(targetsd, tmat)
+    targetxy = XYZ_to_xy(targetXYZ)
+
+    diff = np.linalg.norm(mixedxy - targetxy)
+    return diff
+
+def match_XYZ(a, targetXYZ, spectral_to_XYZ_m):
     """
     match one XYZ
     """
-    spec = np.exp(np.asarray(a))
-    xyz = Spectral_to_XYZ(spec, Spectral_to_XYZ_m)
+    spec = np.asarray(a)
+    xyz = spectral_to_XYZ(spec, spectral_to_XYZ_m)
     diff = np.linalg.norm(xyz - targetXYZ)
     return diff
 
-def match_xy(a, targetXYZ, Spectral_to_XYZ_m):
+def match_xy(a, targetXYZ, spectral_to_XYZ_m):
     """
     match one xy
     """
-    spec = np.exp(np.asarray(a))
-    xyz = Spectral_to_XYZ(spec, Spectral_to_XYZ_m)
+    spec = np.asarray(a)
+    xyz = spectral_to_XYZ(spec, spectral_to_XYZ_m)
     xy = XYZ_to_xy(xyz)
 
     targetxy = XYZ_to_xy(targetXYZ)
@@ -71,14 +89,14 @@ def minimize_slope(a):
     """
     minimize a slope
     """
-    diff = np.sum(np.diff(np.exp(np.asarray(a)) ** 2))
+    diff = np.sum(np.diff(np.asarray(a) ** 2))
     return  diff
 
 def minimize_slopes(a):
     """
     minimize multipel slopes
     """
-    sds = np.exp(extractSPDS(a, numwaves))
+    sds = extractSPDS(a, numwaves)
     red_diff = np.sum(np.diff(sds[0]) ** 2)
     green_diff = np.sum(np.diff(sds[1]) ** 2)
     blue_diff = np.sum(np.diff(sds[2]) ** 2)
@@ -127,20 +145,20 @@ if __name__ == '__main__':
         disp=True
     ).x
 
-    sds = np.exp(extractSPDS(result, numwaves))
+    sds = extractSPDS(result, numwaves)
 
     waves = np.sort(np.asarray(result)[3 * numwaves:4 * numwaves])
     cmfs = extractCMFS(result, numwaves)
     illuminant = extractIlluminantSPD(result, numwaves)
-    Spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, illuminant)
-    Spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_m)
+    spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, illuminant)
+    spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_m)
     Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_Device_m)
     
     print("original XYZ targets: ", XYZ)
-    red_xyz = Spectral_to_XYZ(sds[0], Spectral_to_XYZ_m)
-    green_xyz = Spectral_to_XYZ(sds[1], Spectral_to_XYZ_m)
-    blue_xyz = Spectral_to_XYZ(sds[2], Spectral_to_XYZ_m)
-    illuminant_xyz = Spectral_to_XYZ(illuminant, Spectral_to_XYZ_m)
+    red_xyz = spectral_to_XYZ(sds[0], spectral_to_XYZ_m)
+    green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
+    blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
+    illuminant_xyz = spectral_to_XYZ(illuminant, spectral_to_XYZ_m)
     print("final XYZ results:", red_xyz, green_xyz, blue_xyz, illuminant_xyz)
     red_sd = SpectralDistribution(
         (sds[0]),
@@ -167,7 +185,7 @@ if __name__ == '__main__':
             result = differential_evolution(
                 objectiveFunctionSingle,
                 bounds=boundsSingle,
-                args=(targetXYZ, Spectral_to_XYZ_m),
+                args=(targetXYZ, spectral_to_XYZ_m),
                 workers=workers,
                 mutation=(0.1, 1.99),
                 maxiter=maxiter,
@@ -187,11 +205,11 @@ if __name__ == '__main__':
     print("Spectral blue is")
     print(np.array2string(blue_sd.values, separator=', '))
 
-    print("Spectral_to_XYZ_m is")
-    print(np.array2string(Spectral_to_XYZ_m, separator=', '))
+    print("spectral_to_XYZ_m is")
+    print(np.array2string(spectral_to_XYZ_m, separator=', '))
 
-    print("Spectral_to_RGB_m is")
-    print(np.array2string(Spectral_to_RGB_m, separator=', '))
+    print("spectral_to_RGB_m is")
+    print(np.array2string(spectral_to_RGB_m, separator=', '))
 
     print("Spectral_to_Device_RGB_m is")
     print(np.array2string(Spectral_to_Device_RGB_m, separator=', '))
@@ -204,4 +222,4 @@ if __name__ == '__main__':
     
     if plotMixes:
         plotSDS([red_sd, green_sd, blue_sd], illuminant_sd)
-        plotColorMixes(Spectral_to_XYZ_m, Spectral_to_Device_RGB_m, [red_sd, green_sd, blue_sd])
+        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, [red_sd, green_sd, blue_sd])

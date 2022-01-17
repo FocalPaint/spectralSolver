@@ -34,10 +34,10 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
             # mix with linear RGB
             srgb_colors[i][column*3 + 0] = colour.models.oetf_BT709(np.array(color) * ratio + (1. - ratio) * np.array(color_target))
             # mix with pigment/spectral upsampling and weighted geometric mean
-            pigment_color = Spectral_Mix_WGM((RGB_to_Spectral(color_target, primarySDs)), (RGB_to_Spectral(color, primarySDs)), ratio)
-            pigment_color_rgb = np.array(Spectral_to_RGB(pigment_color, T_MATRIX_DEVICE))
+            pigment_color = spectral_Mix_WGM((rgb_to_Spectral(color_target, primarySDs)), (rgb_to_Spectral(color, primarySDs)), ratio)
+            pigment_color_rgb = np.array(spectral_to_RGB(pigment_color, T_MATRIX_DEVICE))
             if column < len(colorset):
-                pigment_xyz = Spectral_to_XYZ(pigment_color, T_MATRIX_XYZ)
+                pigment_xyz = spectral_to_XYZ(pigment_color, T_MATRIX_XYZ)
                 xy = colour.XYZ_to_xy(pigment_xyz)
                 uv = colour.xy_to_Luv_uv(xy)
                 uv_list.append(uv)
