@@ -45,6 +45,11 @@ def objectiveFunction(a):
     # nudge b+w towards cyan
     cyan = sds[1] + sds[2]
     result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) * 100.
+
+    # penalize large drop in luminance when mixing primaries
+    result += luminance_drop(sds[0], sds[1], 0.5, tmat) * 1000.
+    result += luminance_drop(sds[0], sds[2], 0.5, tmat) * 1000.
+    result += luminance_drop(sds[1], sds[2], 0.5, tmat) * 1000.
     return result
 
 
@@ -61,6 +66,16 @@ def mix_test(sda, sdb, targetsd, ratio, tmat):
     targetxy = XYZ_to_xy(targetXYZ)
 
     diff = np.linalg.norm(mixedxy - targetxy)
+    return diff
+
+def luminance_drop(sda, sdb, ratio, tmat):
+    mixed = spectral_Mix_WGM(sda, sdb, ratio)
+    mixedXYZ = spectral_to_XYZ(mixed, tmat)
+    xyzA = spectral_to_XYZ(sda, tmat)
+    xyzB = spectral_to_XYZ(sdb, tmat)
+    lumAvg = np.mean((xyzA, xyzB), axis=0)[1]
+
+    diff = lumAvg - mixedXYZ[1]
     return diff
 
 def match_XYZ(a, targetXYZ, spectral_to_XYZ_m):
