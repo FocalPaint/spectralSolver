@@ -118,7 +118,8 @@ if __name__ == '__main__':
         objectiveFunction,
         x0=initialGuess,
         bounds=bounds,
-        workers=-1,
+        workers=workers,
+        mutation=(0.1, 1.99),
         maxiter=maxiter,
         tol=tol,
         popsize=npop,
@@ -167,12 +168,13 @@ if __name__ == '__main__':
                 objectiveFunctionSingle,
                 bounds=boundsSingle,
                 args=(targetXYZ, Spectral_to_XYZ_m),
-                workers=-1,
+                workers=workers,
+                mutation=(0.1, 1.99),
                 maxiter=maxiter,
                 popsize=npop,
                 disp=True).x
             #mspd = XYZ_to_spectral_1(np.array(munseltarglTarget), T_MATRIX, waves=waves)
-            mspds.append(result)
+            mspds.append(np.exp(result))
 
     print("optimal (maybe) wavelengths:", np.array2string(waves, separator=', '))
 
