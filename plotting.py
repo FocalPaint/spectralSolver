@@ -19,7 +19,7 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
     colors = np.concatenate((colorset, colorset *0.18, colorset * 0.09), axis=0)
 
     # init destination image array
-    srgb_colors = np.zeros([21,len(colors) * 3, 3])
+    srgb_colors = np.zeros([51,len(colors) * 3, 3])
 
     # fill the image with columns of color mixes
     for column, color in enumerate(colors):
@@ -28,9 +28,9 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
         if column == 0:
             colour.plotting.plot_RGB_colourspaces_in_chromaticity_diagram_CIE1976UCS(colourspaces=colorspace, standalone=False)
         uv_list = []
-        for i in range(0, 21):
+        for i in range(0, 51):
 
-            ratio = i / 20.
+            ratio = i / 50.
             # mix with linear RGB
             srgb_colors[i][column*3 + 0] = colour.models.oetf_BT709(np.array(color) * ratio + (1. - ratio) * np.array(color_target))
             # mix with pigment/spectral upsampling and weighted geometric mean

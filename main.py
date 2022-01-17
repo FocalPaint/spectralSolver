@@ -6,7 +6,7 @@ from colour.plotting import *
 
 from colour import (XYZ_to_xy, SpectralDistribution)
 
-from scipy.optimize import differential_evolution, LinearConstraint, Bounds
+from scipy.optimize import differential_evolution, basinhopping
 from solver import *
 from plotting import plotSDS, plotColorMixes
 from tools import generateT_MATRIX_RGB
@@ -14,9 +14,9 @@ from itertools import repeat
 
 np.set_printoptions(formatter={"float": "{:0.15f}".format}, threshold=sys.maxsize)
 
-red_XYZ =  colour.RGB_to_XYZ([1.0,WGM_EPSILON,WGM_EPSILON], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
-green_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,1.0,WGM_EPSILON], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
-blue_XYZ = colour.RGB_to_XYZ([WGM_EPSILON,WGM_EPSILON,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
+red_XYZ =  colour.RGB_to_XYZ([1.0,0.0,0.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
+green_XYZ = colour.RGB_to_XYZ([0.0,1.0,0.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
+blue_XYZ = colour.RGB_to_XYZ([0.0,0.0,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
 
 XYZ = [red_XYZ, green_XYZ, blue_XYZ]
 
@@ -25,12 +25,17 @@ def func(a):
 sd = np.repeat(0.0, numwaves)
 
 def objectiveFunction(a):
-    result = minimize_slopes(a)
-    result += match_red(a)
-    result += match_green(a)
-    result += match_blue(a)
-    result += match_white(a)
-    result += varianceWaves(a)
+
+    sds = extractSPDS(a, numwaves)
+    cmfs = extractCMFS(a, numwaves)
+    illuminant = extractIlluminantSPD(a, numwaves)
+    tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
+    result = minimize_slopes(a) / 100.
+    result += match_XYZ(sds[0], XYZ[0], tmat) * 10000.
+    result += match_XYZ(sds[1], XYZ[1], tmat) * 10000.
+    result += match_XYZ(sds[2], XYZ[2], tmat) * 10000.
+    result += match_xy(illuminant, illuminant_XYZ, tmat) * 100.
+    result += varianceWaves(a) / 100.
     result += uniqueWaves(a)
     return result
 
@@ -44,10 +49,23 @@ def match_XYZ(a, targetXYZ, Spectral_to_XYZ_m):
     """
     match one XYZ
     """
-    sd[:] = np.exp(np.asarray(a))
-    xyz = Spectral_to_XYZ(sd, Spectral_to_XYZ_m)
+    spec = np.exp(np.asarray(a))
+    xyz = Spectral_to_XYZ(spec, Spectral_to_XYZ_m)
     diff = np.linalg.norm(xyz - targetXYZ)
-    return diff * 100.
+    return diff
+
+def match_xy(a, targetXYZ, Spectral_to_XYZ_m):
+    """
+    match one xy
+    """
+    spec = np.exp(np.asarray(a))
+    xyz = Spectral_to_XYZ(spec, Spectral_to_XYZ_m)
+    xy = XYZ_to_xy(xyz)
+
+    targetxy = XYZ_to_xy(targetXYZ)
+    
+    diff = np.linalg.norm(xy - targetxy)
+    return diff
 
 def minimize_slope(a):
     """
@@ -67,64 +85,6 @@ def minimize_slopes(a):
     diff = red_diff + green_diff + blue_diff
     return  diff
 
-def match_red(a):
-    """
-    Function defining the constraint.
-    """
-    sds = extractSPDS(a, numwaves)
-    cmfs = extractCMFS(a, numwaves)
-    illuminant = extractIlluminantSPD(a, numwaves)
-    tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
-    sd[:] = np.exp(sds[0])
-    xyz = Spectral_to_XYZ(sd, tmat)
-    
-    diff = np.linalg.norm(xyz - XYZ[0])
-    return diff * 10000.
-
-def match_green(a):
-    """
-    Function defining the constraint.
-    """
-    sds = extractSPDS(a, numwaves)
-    cmfs = extractCMFS(a, numwaves)
-    illuminant = extractIlluminantSPD(a, numwaves)
-    tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
-    sd[:] = np.exp(sds[1])
-    xyz = Spectral_to_XYZ(sd, tmat)
-
-    diff = np.linalg.norm(xyz - XYZ[1])
-    return diff * 10000.
-
-def match_blue(a):
-    """
-    Function defining the constraint.
-    """
-    sds = extractSPDS(a, numwaves)
-    cmfs = extractCMFS(a, numwaves)
-    illuminant = extractIlluminantSPD(a, numwaves)
-    tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
-    sd[:] = np.exp(sds[2])
-    xyz = Spectral_to_XYZ(sd, tmat)
-    
-    diff = np.linalg.norm(xyz - XYZ[2])
-    return diff * 10000.
-
-# we want the selected wavelengths extracted
-# from the illuminant SPD to still match the xy
-# so that a perfect reflector is still white
-def match_white(a):
-    """
-    Function defining the constraint.
-    """
-    cmfs = extractCMFS(a, numwaves)
-    illuminant = extractIlluminantSPD(a, numwaves)
-    tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
-    xyz = Spectral_to_XYZ(illuminant, tmat)
-    xy = XYZ_to_xy(xyz)
-    
-    diff = np.linalg.norm(xy - illuminant_xy)
-    return diff * 1000.
-
 # having duplicate wavelengths is an error for Colour library
 # (and probably doesn't make sense)
 def uniqueWaves(a):
@@ -141,7 +101,7 @@ def varianceWaves(a):
     waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
     variance = np.min(np.diff(np.sort(waves)))
     if variance < waveVariance:
-        return (waveVariance - variance) * 100.
+        return (waveVariance - variance)
     else:
         return 0.0    
 
@@ -149,15 +109,22 @@ from settings import *
 if __name__ == '__main__':
     spdBounds = (-12, -0.00001)
     waveBounds = (begin, end)
+    from itertools import repeat
     bounds = tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat(waveBounds, numwaves))
+    initialGuess = np.concatenate((np.repeat(-0.00001, (numwaves * 3)), np.random.rand(numwaves) * (end - begin) + begin))
+    print("initial guess is", initialGuess)
+
     result = differential_evolution(
-            objectiveFunction,
-            bounds=bounds,
-            workers=-1,
-            maxiter=maxiter,
-            popsize=npop,
-            polish=True,
-            disp=True).x
+        objectiveFunction,
+        x0=initialGuess,
+        bounds=bounds,
+        workers=-1,
+        maxiter=maxiter,
+        tol=tol,
+        popsize=npop,
+        polish=True,
+        disp=True
+    ).x
 
     sds = np.exp(extractSPDS(result, numwaves))
 

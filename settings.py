@@ -32,20 +32,21 @@ numwaves = 12
 waveVariance = 2.0
 
 # max iterations for solver
-maxiter = 5000
+maxiter = 2000
 # population size for diffev
-npop = 20
+npop = 10
+# tolerance
+tol = 0.01
 
 # solve additional colors? see munsell.py
 # and add your own XYZ colors
-solveAdditionalXYZs = True
+solveAdditionalXYZs = False
 
 additionalXYZs = ([ 0.46780336,  0.23689442,  0.07897962], [ 0.60375823,  0.48586636,  0.08183366], [ 0.69141481,  0.72890368,  0.03672838], [ 0.53874774,  0.74048729,  0.04405483], [ 0.36800563,  0.72124238,  0.52510832], [ 0.45262124,  0.75488848,  0.9837921 ], [ 0.38936903,  0.52007146,  1.16368056], [ 0.47838485,  0.48171774,  1.15655669], [ 0.58214621,  0.39101099,  1.1441827 ], [ 0.59798203,  0.31675163,  0.46063757])
 
 # plot color mixes and spectral curves
 # (matplotlib)
 plotMixes = True
-
 
 illuminant_xy = colour.CCS_ILLUMINANTS['cie_2_1931']['D65'].copy()
 illuminant_XYZ = colour.xy_to_XYZ(illuminant_xy)
