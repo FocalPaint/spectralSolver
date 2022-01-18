@@ -20,10 +20,13 @@ def extractCMFS(a, numwaves):
     return cmfs
 
 def extractIlluminantSPD(a, numwaves):
-
     illuminantSPD = np.array([])
     waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
     for wave in waves:
         illuminantSPD = np.append(illuminantSPD, illuminant_SPD[wave])
     return illuminantSPD
+
+def extractIlluminantModifier(a, numwaves):
+    illuminantModifier = np.asarray(a)[4 * numwaves:5 * numwaves]
+    return illuminantModifier
 

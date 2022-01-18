@@ -28,7 +28,11 @@ def objectiveFunction(a):
 
     sds = extractSPDS(a, numwaves)
     cmfs = extractCMFS(a, numwaves)
-    illuminant = extractIlluminantSPD(a, numwaves)
+    # illuminant is plucked from canonical SD, but likely won't match xy
+    illuminantOriginal = extractIlluminantSPD(a, numwaves)
+    illuminantModifer = extractIlluminantModifier(a, numwaves)
+    # jitter the illuminant a bit in hopes of matching the right chromaticity xy
+    illuminant = np.multiply(illuminantOriginal, illuminantModifer)
     tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
 
     result = minimize_slopes(sds) / 100.
@@ -38,10 +42,13 @@ def objectiveFunction(a):
     result += match_xy(illuminant, illuminant_XYZ, tmat) * 10000.
     result += varianceWaves(a) / 100.
     result += uniqueWaves(a)
+
+    # penalize difference from original illuminant sd
+    result += np.absolute(illuminant - illuminantOriginal).sum() * 10.
     
     # nudge b+y = green
     yellow = sds[0] + sds[1]
-    result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) * 100.
+    result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) * 1000.
     # nudge b+w towards desaturated cyan
     cyan = sds[1] + sds[2] + (sds[0] * 0.3)
     result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) * 100.
@@ -144,9 +151,15 @@ from settings import *
 if __name__ == '__main__':
     spdBounds = (WGM_EPSILON, 1.0 - WGM_EPSILON)
     waveBounds = (begin, end)
+    illuminantModifierBounds = (0.90, 1.10)
     from itertools import repeat
-    bounds = tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat(waveBounds, numwaves))
-    initialGuess = np.concatenate((np.repeat((1.0 - WGM_EPSILON), (numwaves * 3)), np.linspace(begin, end, num=numwaves, endpoint=True)))
+    bounds = (tuple(repeat(spdBounds, 3 * numwaves)) +
+                  tuple(repeat(waveBounds, numwaves)) +
+                  tuple(repeat(illuminantModifierBounds, numwaves)))
+    # format: 3 spectral primaries + wavelength indices in nm, + illuminant modifiers (%)
+    initialGuess = np.concatenate((np.repeat((1.0 - WGM_EPSILON),
+        (numwaves * 3)), np.linspace(begin, end, num=numwaves, endpoint=True),
+        np.repeat(1.0, numwaves)))
     print("initial guess is", initialGuess)
 
     result = differential_evolution(
