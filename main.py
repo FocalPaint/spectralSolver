@@ -151,7 +151,7 @@ from settings import *
 if __name__ == '__main__':
     spdBounds = (WGM_EPSILON, 1.0 - WGM_EPSILON)
     waveBounds = (begin, end)
-    illuminantModifierBounds = (0.90, 1.10)
+    illuminantModifierBounds = (0.75, 2.0)
     from itertools import repeat
     bounds = (tuple(repeat(spdBounds, 3 * numwaves)) +
                   tuple(repeat(waveBounds, numwaves)) +
@@ -179,7 +179,10 @@ if __name__ == '__main__':
 
     waves = np.sort(np.asarray(result)[3 * numwaves:4 * numwaves])
     cmfs = extractCMFS(result, numwaves)
-    illuminant = extractIlluminantSPD(result, numwaves)
+    illuminantOriginal = extractIlluminantSPD(result, numwaves)
+    illuminantModifer = extractIlluminantModifier(result, numwaves)
+    # illuminant may have jittered in hopes of matching the right chromaticity xy
+    illuminant = np.multiply(illuminantOriginal, illuminantModifer)
     spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, illuminant)
     spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_m)
     Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_Device_m)
