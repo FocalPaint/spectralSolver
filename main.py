@@ -36,15 +36,18 @@ def objectiveFunction(a):
     tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
 
     result = minimize_slopes(sds) / 100.
-    result += match_XYZ(sds[0], XYZ[0], tmat) * 10000.
-    result += match_XYZ(sds[1], XYZ[1], tmat) * 10000.
+    result += match_XYZ(sds[0], XYZ[0], tmat) * 100000.
+    result += match_XYZ(sds[1], XYZ[1], tmat) * 100000.
     result += match_XYZ(sds[2], XYZ[2], tmat) * 100000.
-    result += match_xy(illuminant, illuminant_XYZ, tmat) * 10000.
+    result += match_xy(illuminant, illuminant_XYZ, tmat) * 1000000.
     result += varianceWaves(a) / 100.
     result += uniqueWaves(a)
 
     # penalize difference from original illuminant sd
     result += np.absolute(illuminant - illuminantOriginal).sum() * 10.
+
+    # penalize non-smooth illuminant
+    result += minimize_slope(illuminant) * 10.
     
     # nudge b+y = green
     yellow = sds[0] + sds[1]
@@ -114,7 +117,7 @@ def minimize_slope(a):
     """
     minimize a slope
     """
-    diff = np.sum(np.diff(np.asarray(a) ** 2))
+    diff = np.sum(np.diff(np.asarray(a)) ** 2)
     return  diff
 
 def minimize_slopes(sds):

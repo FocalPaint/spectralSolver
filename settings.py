@@ -33,11 +33,11 @@ numwaves = 12
 waveVariance = 2.0
 
 # max iterations for solver
-maxiter = 4000
+maxiter = 10000
 # population size for diffev
 npop = 20
 # tolerance
-tol = 0.001
+tol = 0.00001
 # cpu cores to use, -1 is all cores
 workers = -1
 
