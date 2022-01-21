@@ -7,10 +7,13 @@ from colour.plotting import *
 from colour import (XYZ_to_xy, SpectralDistribution)
 
 from scipy.optimize import differential_evolution, basinhopping
+from sympy import true
 from solver import *
 from plotting import plotSDS, plotColorMixes
 from tools import generateT_MATRIX_RGB
 from itertools import repeat
+from os.path import exists
+from os import remove
 
 np.set_printoptions(formatter={"float": "{:0.15f}".format}, threshold=sys.maxsize)
 
@@ -24,8 +27,7 @@ def func(a):
     return 0.0
 sd = np.repeat(0.0, numwaves)
 
-def objectiveFunction(a):
-
+def extractDataFromParameter(a):
     sds = extractSPDS(a, numwaves)
     cmfs = extractCMFS(a, numwaves)
     # illuminant is plucked from canonical SD, but likely won't match xy
@@ -35,34 +37,70 @@ def objectiveFunction(a):
     illuminant = np.multiply(illuminantOriginal, illuminantModifer)
     tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
 
-    result = minimize_slopes(sds) / 100.
-    result += match_XYZ(sds[0], XYZ[0], tmat) * 100000.
-    result += match_XYZ(sds[1], XYZ[1], tmat) * 100000.
-    result += match_XYZ(sds[2], XYZ[2], tmat) * 100000.
-    result += match_xy(illuminant, illuminant_XYZ, tmat) * 1000000.
-    result += varianceWaves(a) / 100.
-    result += uniqueWaves(a)
+    return (sds, cmfs, illuminantOriginal, illuminant, tmat)
+
+def processResult(a):
+    sds, cmfs, illuminantOriginal, illuminant, tmat = extractDataFromParameter(a)
+    spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, illuminant)
+    spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_m)
+    Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_Device_m)
+    waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
+    red_xyz = spectral_to_XYZ(sds[0], spectral_to_XYZ_m)
+    green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
+    blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
+    illuminant_xyz = spectral_to_XYZ(illuminant, spectral_to_XYZ_m)
+    # print("final XYZ results:", red_xyz, green_xyz, blue_xyz, illuminant_xyz)
+    red_sd = SpectralDistribution(
+        (sds[0]),
+        waves)
+    red_sd.name = str(red_xyz)
+    green_sd = SpectralDistribution(
+        (sds[1]),
+        waves)
+    green_sd.name = str(green_xyz)
+    blue_sd = SpectralDistribution(
+        (sds[2]),
+        waves)
+    blue_sd.name = str(blue_xyz)
+    illuminant_sd = SpectralDistribution(
+        (illuminant),
+        waves)
+    illuminant_sd.name = str(illuminant_xyz)
+    return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
+            illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal)
+
+def objectiveFunction(a):
+
+    sds, cmfs, illuminantOriginal, illuminant, tmat = extractDataFromParameter(a)
+
+    result = minimize_slopes(sds) * weight_minslope
+    result += match_XYZ(sds[0], XYZ[0], tmat) ** 2.0 * weight_red
+    result += match_XYZ(sds[1], XYZ[1], tmat) ** 2.0 * weight_green
+    result += match_XYZ(sds[2], XYZ[2], tmat) ** 2.0 * weight_blue
+    result += match_xy(illuminant, illuminant_XYZ, tmat) ** 2.0 * weight_illumiant
+    result += varianceWaves(a) * weight_variance
+    result += uniqueWaves(a) * weight_uniqueWaves
 
     # penalize difference from original illuminant sd
-    result += np.absolute(illuminant - illuminantOriginal).sum() * 10.
+    result += np.absolute(illuminant - illuminantOriginal).sum() * weight_illuminant_shape
 
     # penalize non-smooth illuminant
-    result += minimize_slope(illuminant) * 10.
+    result += minimize_slope(illuminant) * weight_ill_slope
     
     # nudge b+y = green
     yellow = sds[0] + sds[1]
-    result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) * 1000.
+    result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) ** 2.0 * weight_mixtest1
     # nudge b+w towards desaturated cyan
-    cyan = sds[1] + sds[2] + (sds[0] * 0.3)
-    result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) * 100.
+    cyan = sds[1] + sds[2] + (sds[0] * 0.05)
+    result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) ** 2.0 * weight_mixtest2
     # nudge b+r should be purple
     purple = sds[0] + sds[2]
-    result += mix_test(sds[0], sds[2], purple, 0.5, tmat) * 100.
+    result += mix_test(sds[0], sds[2], purple, 0.5, tmat) ** 2.0 * weight_mixtest3
 
     # penalize large drop in luminance when mixing primaries
-    result += luminance_drop(sds[0], sds[1], 0.5, tmat) * 1000.
-    result += luminance_drop(sds[0], sds[2], 0.5, tmat) * 1000.
-    result += luminance_drop(sds[1], sds[2], 0.5, tmat) * 1000.
+    result += luminance_drop(sds[0], sds[1], 0.5, tmat) ** 2.0 * weight_lum_drop_rg
+    result += luminance_drop(sds[0], sds[2], 0.5, tmat) ** 2.0 * weight_lum_drop_rb
+    result += luminance_drop(sds[1], sds[2], 0.5, tmat) ** 2.0 * weight_lum_drop_gb
     return result
 
 
@@ -148,7 +186,55 @@ def varianceWaves(a):
     if variance < waveVariance:
         return (waveVariance - variance)
     else:
-        return 0.0    
+        return 0.0
+
+def plotProgress(xk, convergence):
+    (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
+    illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal) = processResult(xk)
+    # plotSDS([red_sd, green_sd, blue_sd], illuminant_sd)
+    red_delta = np.linalg.norm(red_xyz - XYZ[0])
+    green_delta = np.linalg.norm(green_xyz - XYZ[1])
+    blue_delta = np.linalg.norm(blue_xyz - XYZ[2])
+    ilum_delta = np.linalg.norm(illuminant_xy - colour.XYZ_to_xy(illuminant_xyz))
+    bumpiness = minimize_slopes([red_sd.values, green_sd.values, blue_sd.values])
+    variance = varianceWaves(xk)
+    illum_shape = np.absolute(illuminant_sd.values - illuminantOriginal).sum()
+    illum_bumpiness = minimize_slope(illuminant_sd.values)
+    yellow = red_sd.values + green_sd.values
+    mixtest1 = mix_test(blue_sd.values, yellow, green_sd.values, 0.5, spectral_to_XYZ_m)
+    cyan = blue_sd.values + green_sd.values + red_sd.values * 0.05
+    mixtest2 = mix_test(blue_sd.values, np.repeat(1.0, numwaves), cyan, 0.5, spectral_to_XYZ_m)
+    lum_drop_rg = luminance_drop(red_sd.values, green_sd.values, 0.5, spectral_to_XYZ_m)
+    lum_drop_rb= luminance_drop(red_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
+    lum_drop_gb = luminance_drop(green_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
+
+    print("cost metric, weighted delta cost, actual delta value")
+    print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
+    print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
+    print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
+    print("illum xy delta:  ", ilum_delta ** 2.0 * weight_illumiant, ilum_delta)
+    print("bumpiness:       ", bumpiness * weight_minslope, bumpiness)
+    print("wave variance    ", variance * weight_variance, variance)
+    print("illum shape diff ", illum_shape * weight_illuminant_shape, illum_shape )
+    print("illum bumpiness  ", illum_bumpiness * weight_ill_slope, illum_bumpiness)
+    print("lum drop rg      ",  lum_drop_rg ** 2.0 * weight_lum_drop_rg, lum_drop_rg)
+    print("lum drop rb      ",  lum_drop_rb ** 2.0 * weight_lum_drop_rb, lum_drop_rb)
+    print("lum drop gb      ",  lum_drop_gb ** 2.0 * weight_lum_drop_gb, lum_drop_gb)
+
+    
+    print("mix green delta: ",  mixtest1 ** 2.0 * weight_mixtest1, mixtest1)
+    # nudge b+w towards desaturated cyan
+   
+    print("mix bl/wh delta: ",  mixtest2 ** 2.0 * weight_mixtest2, mixtest2)
+    print("`touch halt` to exit early with this solution.")
+    print("---")
+
+    if exists("halt"):
+        print("halting early. . .")
+        remove("halt")
+        return True
+    else:
+        return False
 
 from settings import *
 if __name__ == '__main__':
@@ -168,6 +254,7 @@ if __name__ == '__main__':
     result = differential_evolution(
         objectiveFunction,
         x0=initialGuess,
+        callback=plotProgress,
         bounds=bounds,
         workers=workers,
         mutation=(0.1, 1.99),
@@ -178,40 +265,8 @@ if __name__ == '__main__':
         disp=True
     ).x
 
-    sds = extractSPDS(result, numwaves)
-
-    waves = np.sort(np.asarray(result)[3 * numwaves:4 * numwaves])
-    cmfs = extractCMFS(result, numwaves)
-    illuminantOriginal = extractIlluminantSPD(result, numwaves)
-    illuminantModifer = extractIlluminantModifier(result, numwaves)
-    # illuminant may have jittered in hopes of matching the right chromaticity xy
-    illuminant = np.multiply(illuminantOriginal, illuminantModifer)
-    spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, illuminant)
-    spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_m)
-    Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_Device_m)
-    
-    print("original XYZ targets: ", XYZ)
-    red_xyz = spectral_to_XYZ(sds[0], spectral_to_XYZ_m)
-    green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
-    blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
-    illuminant_xyz = spectral_to_XYZ(illuminant, spectral_to_XYZ_m)
-    print("final XYZ results:", red_xyz, green_xyz, blue_xyz, illuminant_xyz)
-    red_sd = SpectralDistribution(
-        (sds[0]),
-        waves)
-    red_sd.name = str(red_xyz)
-    green_sd = SpectralDistribution(
-        (sds[1]),
-        waves)
-    green_sd.name = str(green_xyz)
-    blue_sd = SpectralDistribution(
-        (sds[2]),
-        waves)
-    blue_sd.name = str(blue_xyz)
-    illuminant_sd = SpectralDistribution(
-        (illuminant),
-        waves)
-    illuminant_sd.name = str(illuminant_xyz)
+    (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
+        illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal) = processResult(result)
 
     mspds = []
     if solveAdditionalXYZs:
@@ -229,7 +284,8 @@ if __name__ == '__main__':
                 maxiter=maxiter,
                 popsize=npop,
                 disp=True).x
-            #mspd = XYZ_to_spectral_1(np.array(munseltarglTarget), T_MATRIX, waves=waves)
+            mspd = SpectralDistribution((result), waves)
+            mspd.name = str(targetXYZ)
             mspds.append(result)
 
     print("optimal (maybe) wavelengths:", np.array2string(waves, separator=', '))

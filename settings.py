@@ -1,3 +1,4 @@
+from enum import unique
 import colour
 import numpy as np
 
@@ -87,3 +88,20 @@ XYZ_to_RGB_Device_m = colorspaceTargetDevice.matrix_XYZ_to_RGB
 WGM_EPSILON = .0001
 
 CMFS = colour.MSDS_CMFS['cie_2_1931'].copy()
+
+
+weight_minslope = 0.001
+weight_red = 100.
+weight_green = 100.
+weight_blue = 1000.
+weight_illumiant = 10.
+weight_variance = 1.
+weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf
+weight_illuminant_shape = 0.0001
+weight_ill_slope = 0.001
+weight_mixtest1 = 10.
+weight_mixtest2 = 10.
+weight_mixtest3 = 10.
+weight_lum_drop_rg = 1.
+weight_lum_drop_rb = 100.
+weight_lum_drop_gb = 1.
