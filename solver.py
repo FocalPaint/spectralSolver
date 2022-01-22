@@ -179,6 +179,8 @@ def plotProgress(xk, convergence):
     mixtest1 = mix_test(blue_sd.values, yellow, green_sd.values, 0.5, spectral_to_XYZ_m)
     cyan = blue_sd.values + green_sd.values + red_sd.values * 0.05
     mixtest2 = mix_test(blue_sd.values, np.repeat(1.0, numwaves), cyan, 0.5, spectral_to_XYZ_m)
+    purple = red_sd.values + blue_sd.values
+    mixtest3 = mix_test(red_sd.values, blue_sd.values, purple, 0.5, spectral_to_XYZ_m)
     lum_drop_rg = luminance_drop(red_sd.values, green_sd.values, 0.5, spectral_to_XYZ_m)
     lum_drop_rb= luminance_drop(red_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
     lum_drop_gb = luminance_drop(green_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
@@ -201,6 +203,7 @@ def plotProgress(xk, convergence):
     # nudge b+w towards desaturated cyan
    
     print("mix bl/wh delta: ",  mixtest2 ** 2.0 * weight_mixtest2, mixtest2)
+    print("mix prple delta: ",  mixtest3 ** 2.0 * weight_mixtest3, mixtest3)
     print("`touch halt` to exit early with this solution.")
     print("---")
 
