@@ -34,7 +34,7 @@ numwaves = 12
 waveVariance = 2.0
 
 # max iterations for solver
-maxiter = 10000
+maxiter = 100000
 # population size for diffev
 npop = 20
 # tolerance
@@ -91,10 +91,10 @@ CMFS = colour.MSDS_CMFS['cie_2_1931'].copy()
 
 
 weight_minslope = 0.001
-weight_red = 100.
-weight_green = 100.
+weight_red = 1000.
+weight_green = 1000.
 weight_blue = 1000.
-weight_illumiant = 10.
+weight_illumiant = 1000.
 weight_variance = 1.
 weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf
 weight_illuminant_shape = 0.0001
