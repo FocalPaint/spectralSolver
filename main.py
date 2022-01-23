@@ -48,11 +48,18 @@ def objectiveFunction(a):
     # nudge b+r should be purple
     purple = sds[0] + sds[2]
     result += mix_test(sds[0], sds[2], purple, 0.5, tmat) ** 2.0 * weight_mixtest3
+    # dark purple and white should go cyanish
+    darkp = sds[0] * 0.298 + sds[1] * 0.18 + sds[2] * 0.551
+    lightcy = sds[0] * 0.502 + sds[1] * 0.723 + sds[2] * 0.861
+    result += mix_test(darkp, np.repeat(1.0, numwaves), lightcy, 0.5, tmat) ** 2.0 * weight_mixtest4	
 
     # penalize large drop in luminance when mixing primaries
     result += luminance_drop(sds[0], sds[1], 0.5, tmat) ** 2.0 * weight_lum_drop_rg
     result += luminance_drop(sds[0], sds[2], 0.5, tmat) ** 2.0 * weight_lum_drop_rb
     result += luminance_drop(sds[1], sds[2], 0.5, tmat) ** 2.0 * weight_lum_drop_gb
+
+    # encourage maximal visual efficiency ( high Y )
+    result += -np.sum(cmfs, axis=0)[1] ** 2.0 * weight_visual_efficiency
     return result
 
 
@@ -90,7 +97,7 @@ if __name__ == '__main__':
     ).x
 
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-        illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal) = processResult(result)
+        illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal, cmfs) = processResult(result)
 
     mspds = []
     if solveAdditionalXYZs:

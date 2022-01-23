@@ -47,7 +47,7 @@ workers = -1
 # solveAdditionalXYZs = True
 solveAdditionalXYZs = True
 
-additionalXYZs = ([ 0.46780336,  0.23689442,  0.07897962], [ 0.60375823,  0.48586636,  0.08183366], [ 0.69141481,  0.72890368,  0.03672838], [ 0.53874774,  0.74048729,  0.04405483], [ 0.36800563,  0.72124238,  0.52510832], [ 0.45262124,  0.75488848,  0.9837921 ], [ 0.38936903,  0.52007146,  1.16368056], [ 0.47838485,  0.48171774,  1.15655669], [ 0.58214621,  0.39101099,  1.1441827 ], [ 0.59798203,  0.31675163,  0.46063757])
+additionalXYZs = ([ 0.46780336,  0.23689442,  0.07897962], [ 0.60375823,  0.48586636,  0.08183366], [ 0.69141481,  0.72890368,  0.03672838], [ 0.53874774,  0.74048729,  0.04405483], [ 0.36800563,  0.72124238,  0.52510832], [ 0.45262124,  0.75488848,  0.9837921 ], [ 0.38936903,  0.52007146,  1.16368056], [ 0.47838485,  0.48171774,  1.15655669], [ 0.58214621,  0.39101099,  1.1441827 ], [ 0.59798203,  0.31675163,  0.46063757], [.0469, .0215, .2383])
 
 # plot color mixes and spectral curves
 # (matplotlib)
@@ -95,10 +95,10 @@ CMFS = colour.MSDS_CMFS['cie_2_1931'].copy()
 # adjust these if necessary, for instance if your blue primary is not matching, bump it up x 10 or something
 
 weight_minslope = 0.001  # how important smooth reflectance curvers are
-weight_red = 1000. # how important matching the XYZ of red primary
-weight_green = 1000. # how important matching the XYZ of green primary
-weight_blue = 1000. # how important matching the XYZ of blue primary
-weight_illumiant = 1000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
+weight_red = 10000. # how important matching the XYZ of red primary
+weight_green = 10000. # how important matching the XYZ of green primary
+weight_blue = 10000. # how important matching the XYZ of blue primary
+weight_illumiant = 10000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
 weight_variance = 1. # how important it is to have gaps between wavelengths 500nm, 505nm, vs 500.1nm, 500.2nm, etc
 weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf.  We must not have duplicates
 weight_illuminant_shape = 0.0001 # how important it is to keep the new illuminant the same shape as the canonical SD
@@ -106,6 +106,8 @@ weight_ill_slope = 0.001 # how important it is for the new illuminant to be smoo
 weight_mixtest1 = 10. # how important it is for blue + yellow to make green
 weight_mixtest2 = 10. # how important it is for blue + white to be more cyan instead of purple
 weight_mixtest3 = 10. # how important it is for blue + red to be purple.  Yeah.
+weight_mixtest4 = 10. # how important it is for dark purple + white to go cyanish
 weight_lum_drop_rg = 1. # how important to avoid drop in luminance when mixing red and green
 weight_lum_drop_rb = 100. # how important to avoid drop in luminance when mixing red and blue
 weight_lum_drop_gb = 1. # how important to avoid drop in luminance when mixing green and blue
+weight_visual_efficiency = 1. # how import to maximize visual efficiency of the chosen wavelengths

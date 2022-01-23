@@ -81,7 +81,7 @@ def processResult(a):
         waves)
     illuminant_sd.name = str(illuminant_xyz)
     return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-            illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal)
+            illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal, cmfs)
 
 
 def mix_test(sda, sdb, targetsd, ratio, tmat):
@@ -165,7 +165,7 @@ def varianceWaves(a):
 
 def plotProgress(xk, convergence):
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-    illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal) = processResult(xk)
+    illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal, cmfs) = processResult(xk)
     # plotSDS([red_sd, green_sd, blue_sd], illuminant_sd)
     red_delta = np.linalg.norm(red_xyz - XYZ[0])
     green_delta = np.linalg.norm(green_xyz - XYZ[1])
@@ -181,11 +181,15 @@ def plotProgress(xk, convergence):
     mixtest2 = mix_test(blue_sd.values, np.repeat(1.0, numwaves), cyan, 0.5, spectral_to_XYZ_m)
     purple = red_sd.values + blue_sd.values
     mixtest3 = mix_test(red_sd.values, blue_sd.values, purple, 0.5, spectral_to_XYZ_m)
+    darkp = red_sd.values* 0.298 + green_sd.values * 0.18 + blue_sd.values * 0.551
+    lightcy = red_sd.values * 0.502 + green_sd.values * 0.723 + blue_sd.values * 0.861
+    mixtest4 = mix_test(darkp, np.repeat(1.0, numwaves), lightcy, 0.5, spectral_to_XYZ_m) 	
     lum_drop_rg = luminance_drop(red_sd.values, green_sd.values, 0.5, spectral_to_XYZ_m)
     lum_drop_rb= luminance_drop(red_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
     lum_drop_gb = luminance_drop(green_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
+    vis_efficiency = np.sum(cmfs, axis=0)[1]
 
-    print("cost metric, weighted delta cost, actual delta value")
+    print("cost metric (smaller = better), weighted cost, actual cost value")
     print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
     print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
     print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
@@ -194,9 +198,10 @@ def plotProgress(xk, convergence):
     print("wave variance    ", variance * weight_variance, variance)
     print("illum shape diff ", illum_shape * weight_illuminant_shape, illum_shape )
     print("illum bumpiness  ", illum_bumpiness * weight_ill_slope, illum_bumpiness)
-    print("lum drop rg      ",  lum_drop_rg ** 2.0 * weight_lum_drop_rg, lum_drop_rg)
-    print("lum drop rb      ",  lum_drop_rb ** 2.0 * weight_lum_drop_rb, lum_drop_rb)
-    print("lum drop gb      ",  lum_drop_gb ** 2.0 * weight_lum_drop_gb, lum_drop_gb)
+    print("lum drop rg      ", lum_drop_rg ** 2.0 * weight_lum_drop_rg, lum_drop_rg)
+    print("lum drop rb      ", lum_drop_rb ** 2.0 * weight_lum_drop_rb, lum_drop_rb)
+    print("lum drop gb      ", lum_drop_gb ** 2.0 * weight_lum_drop_gb, lum_drop_gb)
+    print("visual effic     ", -(vis_efficiency ** 2.0) * weight_visual_efficiency, -vis_efficiency)
 
     
     print("mix green delta: ",  mixtest1 ** 2.0 * weight_mixtest1, mixtest1)
@@ -204,6 +209,8 @@ def plotProgress(xk, convergence):
    
     print("mix bl/wh delta: ",  mixtest2 ** 2.0 * weight_mixtest2, mixtest2)
     print("mix prple delta: ",  mixtest3 ** 2.0 * weight_mixtest3, mixtest3)
+    print("mix dprp/w delta ",  mixtest4 ** 2.0 * weight_mixtest4, mixtest4)
+    print("selected wavelengths: ", waves)
     print("`touch halt` to exit early with this solution.")
     print("---")
 
