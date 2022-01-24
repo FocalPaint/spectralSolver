@@ -181,13 +181,14 @@ def plotProgress(xk, convergence):
     mixtest2 = mix_test(blue_sd.values, np.repeat(1.0, numwaves), cyan, 0.5, spectral_to_XYZ_m)
     purple = red_sd.values + blue_sd.values
     mixtest3 = mix_test(red_sd.values, blue_sd.values, purple, 0.5, spectral_to_XYZ_m)
-    darkp = red_sd.values* 0.298 + green_sd.values * 0.18 + blue_sd.values * 0.551
-    lightcy = red_sd.values * 0.502 + green_sd.values * 0.723 + blue_sd.values * 0.861
-    mixtest4 = mix_test(darkp, np.repeat(1.0, numwaves), lightcy, 0.5, spectral_to_XYZ_m) 	
+    # darkp = red_sd.values* 0.298 + green_sd.values * 0.18 + blue_sd.values * 0.551
+    # lightcy = red_sd.values * 0.502 + green_sd.values * 0.723 + blue_sd.values * 0.861
+    # mixtest4 = mix_test(darkp, np.repeat(1.0, numwaves), lightcy, 0.5, spectral_to_XYZ_m) 	
     lum_drop_rg = luminance_drop(red_sd.values, green_sd.values, 0.5, spectral_to_XYZ_m)
     lum_drop_rb= luminance_drop(red_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
     lum_drop_gb = luminance_drop(green_sd.values, blue_sd.values, 0.5, spectral_to_XYZ_m)
     vis_efficiency = np.sum(cmfs, axis=0)[1]
+    sums = ((np.sum([red_sd.values, green_sd.values, blue_sd.values],axis=0) - 1.0) ** 2.0).sum()
 
     print("cost metric (smaller = better), weighted cost, actual cost value")
     print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
@@ -202,6 +203,7 @@ def plotProgress(xk, convergence):
     print("lum drop rb      ", lum_drop_rb ** 2.0 * weight_lum_drop_rb, lum_drop_rb)
     print("lum drop gb      ", lum_drop_gb ** 2.0 * weight_lum_drop_gb, lum_drop_gb)
     print("visual effic     ", -(vis_efficiency ** 2.0) * weight_visual_efficiency, -vis_efficiency)
+    print("sd sums to one   ", sums * weight_sum_to_one, sums)
 
     
     print("mix green delta: ",  mixtest1 ** 2.0 * weight_mixtest1, mixtest1)
@@ -209,7 +211,7 @@ def plotProgress(xk, convergence):
    
     print("mix bl/wh delta: ",  mixtest2 ** 2.0 * weight_mixtest2, mixtest2)
     print("mix prple delta: ",  mixtest3 ** 2.0 * weight_mixtest3, mixtest3)
-    print("mix dprp/w delta ",  mixtest4 ** 2.0 * weight_mixtest4, mixtest4)
+    # print("mix dprp/w delta ",  mixtest4 ** 2.0 * weight_mixtest4, mixtest4)
     print("selected wavelengths: ", waves)
     print("`touch halt` to exit early with this solution.")
     print("---")

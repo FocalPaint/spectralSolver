@@ -49,9 +49,9 @@ def objectiveFunction(a):
     purple = sds[0] + sds[2]
     result += mix_test(sds[0], sds[2], purple, 0.5, tmat) ** 2.0 * weight_mixtest3
     # dark purple and white should go cyanish
-    darkp = sds[0] * 0.298 + sds[1] * 0.18 + sds[2] * 0.551
-    lightcy = sds[0] * 0.502 + sds[1] * 0.723 + sds[2] * 0.861
-    result += mix_test(darkp, np.repeat(1.0, numwaves), lightcy, 0.5, tmat) ** 2.0 * weight_mixtest4	
+    # darkp = sds[0] * 0.298 + sds[1] * 0.18 + sds[2] * 0.551
+    # lightcy = sds[0] * 0.502 + sds[1] * 0.723 + sds[2] * 0.861
+    # result += mix_test(darkp, np.repeat(1.0, numwaves), lightcy, 0.5, tmat) ** 2.0 * weight_mixtest4	
 
     # penalize large drop in luminance when mixing primaries
     result += luminance_drop(sds[0], sds[1], 0.5, tmat) ** 2.0 * weight_lum_drop_rg
@@ -60,6 +60,9 @@ def objectiveFunction(a):
 
     # encourage maximal visual efficiency ( high Y )
     result += -np.sum(cmfs, axis=0)[1] ** 2.0 * weight_visual_efficiency
+
+    # sum to one
+    result += ((np.sum(sds,axis=0) - 1.0) ** 2.0).sum() * weight_sum_to_one
     return result
 
 
