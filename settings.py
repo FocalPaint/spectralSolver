@@ -22,8 +22,8 @@ colorspaceTargetDevice = colour.models.RGB_COLOURSPACE_sRGB
 # wavelength range to solve for
 # maybe makes sense to make this as narrow as possible
 # maybe not
-begin = 380.0 
-end = 730.0
+begin = 430.0 
+end = 700.0
 
 # number of wavelengths/channels to solve for
 # wavelengths will be non-uniformly spaced
@@ -86,6 +86,8 @@ XYZ_to_RGB_Device_m = colorspaceTargetDevice.matrix_XYZ_to_RGB
 # conversions from light emission to reflectance must avoid absolute zero
 # because log(0.0) is undefined
 WGM_EPSILON = .0001
+MAX_REFLECTANCE = 0.98
+MIN_REFLECTANCE = WGM_EPSILON
 
 # color matching functions to use when converting from spectral to XYZ 
 CMFS = colour.MSDS_CMFS['cie_2_1931'].copy()
@@ -95,15 +97,15 @@ CMFS = colour.MSDS_CMFS['cie_2_1931'].copy()
 # adjust these if necessary, for instance if your blue primary is not matching, bump it up x 10 or something
 
 weight_minslope = 0.001  # how important smooth reflectance curvers are
-weight_red = 10000. # how important matching the XYZ of red primary
-weight_green = 10000. # how important matching the XYZ of green primary
-weight_blue = 10000. # how important matching the XYZ of blue primary
-weight_illumiant = 10000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
-weight_variance = 1. # how important it is to have gaps between wavelengths 500nm, 505nm, vs 500.1nm, 500.2nm, etc
+weight_red = 100000. # how important matching the XYZ of red primary
+weight_green = 100000. # how important matching the XYZ of green primary
+weight_blue = 1000000. # how important matching the XYZ of blue primary
+weight_illumiant = 100000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
+weight_variance = 10. # how important it is to have gaps between wavelengths 500nm, 505nm, vs 500.1nm, 500.2nm, etc
 weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf.  We must not have duplicates
 weight_illuminant_shape = 0.0001 # how important it is to keep the new illuminant the same shape as the canonical SD
 weight_ill_slope = 0.001 # how important it is for the new illuminant to be smooth
-weight_mixtest1 = 10. # how important it is for blue + yellow to make green
+weight_mixtest1 = 100. # how important it is for blue + yellow to make green
 weight_mixtest2 = 10. # how important it is for blue + white to be more cyan instead of purple
 weight_mixtest3 = 10. # how important it is for blue + red to be purple.  Yeah.
 # weight_mixtest4 = 10. # how important it is for dark purple + white to go cyanish
@@ -111,4 +113,4 @@ weight_lum_drop_rg = 1. # how important to avoid drop in luminance when mixing r
 weight_lum_drop_rb = 100. # how important to avoid drop in luminance when mixing red and blue
 weight_lum_drop_gb = 1. # how important to avoid drop in luminance when mixing green and blue
 weight_visual_efficiency = 1. # how import to maximize visual efficiency of the chosen wavelengths
-weight_sum_to_one = 100. # how important to sum to 1 for conservation of energy
+weight_sum_to_one = 100. # how important to sum to MAX_REFLECTANCE for conservation of energy

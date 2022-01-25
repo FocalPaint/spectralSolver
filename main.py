@@ -62,7 +62,7 @@ def objectiveFunction(a):
     result += -np.sum(cmfs, axis=0)[1] ** 2.0 * weight_visual_efficiency
 
     # sum to one
-    result += ((np.sum(sds,axis=0) - 1.0) ** 2.0).sum() * weight_sum_to_one
+    result += ((np.sum(sds,axis=0) - MAX_REFLECTANCE) ** 2.0).sum() * weight_sum_to_one
     return result
 
 
@@ -72,7 +72,7 @@ def objectiveFunctionSingle(a, targetXYZ, spectral_to_XYZ_m):
     return result
 
 if __name__ == '__main__':
-    spdBounds = (WGM_EPSILON, 1.0 - WGM_EPSILON)
+    spdBounds = (MIN_REFLECTANCE, MAX_REFLECTANCE)
     waveBounds = (begin, end)
     illuminantModifierBounds = (0.75, 2.0)
     from itertools import repeat
@@ -80,7 +80,7 @@ if __name__ == '__main__':
                   tuple(repeat(waveBounds, numwaves)) +
                   tuple(repeat(illuminantModifierBounds, numwaves)))
     # format: 3 spectral primaries + wavelength indices in nm, + illuminant modifiers (%)
-    initialGuess = np.concatenate((np.repeat((1.0 - WGM_EPSILON),
+    initialGuess = np.concatenate((np.repeat((MAX_REFLECTANCE),
         (numwaves * 3)), np.linspace(begin, end, num=numwaves, endpoint=True),
         np.repeat(1.0, numwaves)))
     print("initial guess is", initialGuess)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
         mspds = []
         for targetXYZ in additionalXYZs:
             boundsSingle = tuple(repeat(spdBounds, numwaves))
-            initialGuess = np.repeat(1.0 - WGM_EPSILON, numwaves)
+            initialGuess = np.repeat(MAX_REFLECTANCE, numwaves)
             result = differential_evolution(
                 objectiveFunctionSingle,
                 x0=initialGuess,
