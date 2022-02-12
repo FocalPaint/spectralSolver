@@ -4,7 +4,7 @@ Largley based on ideas from Scott Allen Burns
 
 http://scottburns.us/color-science-projects/
 
-Generates 3 spectral reflectance distributions in range > 0.0 and < 1.0, along with matrixes to convert to/from RGB. Also produces a set of 10 Munsell colors from 5R thru 5RP
+Generates 3 spectral reflectance distributions in range > 0.0 and < 1.0, along with matrices to convert to/from RGB. Also produces a set of 10 Munsell colors from 5R thru 5RP
 
 
 ```
