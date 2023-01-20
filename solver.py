@@ -15,12 +15,12 @@ blue_XYZ = colour.RGB_to_XYZ([0.0,0.0,1.0], illuminant_xy, illuminant_xy, RGB_to
 XYZ = [red_XYZ, green_XYZ, blue_XYZ]
 
 def extractSPDS(a, numwaves):
-    sds = np.asarray(a)[:3 * numwaves].reshape((3, numwaves))
+    sds = np.asarray(a)[:4 * numwaves].reshape((4, numwaves))
     return sds
     
 def extractCMFS(a, numwaves):
     cmfs = np.array([[]])
-    waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
+    waves = np.sort(np.asarray(a)[4 * numwaves:5 * numwaves])
     for idx, wave in enumerate(waves):
         if idx == 0:
             cmfs = np.append(cmfs, [CMFS[wave]], axis=1)
@@ -28,42 +28,26 @@ def extractCMFS(a, numwaves):
             cmfs = np.append(cmfs, [CMFS[wave]], axis=0)
     return cmfs
 
-def extractIlluminantSPD(a, numwaves):
-    illuminantSPD = np.array([])
-    waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
-    for wave in waves:
-        illuminantSPD = np.append(illuminantSPD, illuminant_SPD[wave])
-    return illuminantSPD
-
-def extractIlluminantModifier(a, numwaves):
-    illuminantModifier = np.asarray(a)[4 * numwaves:5 * numwaves]
-    return illuminantModifier
-
 def extractDataFromParameter(a):
     sds = extractSPDS(a, numwaves)
     cmfs = extractCMFS(a, numwaves)
-    # illuminant is plucked from canonical SD, but likely won't match xy
-    illuminantOriginal = extractIlluminantSPD(a, numwaves)
-    illuminantModifer = extractIlluminantModifier(a, numwaves)
-    # jitter the illuminant a bit in hopes of matching the right chromaticity xy
-    illuminant = np.multiply(illuminantOriginal, illuminantModifer)
+    illuminant = sds[3]
     tmat = generateT_MATRIX_XYZ(cmfs, illuminant)
 
-    return (sds, cmfs, illuminantOriginal, illuminant, tmat)
+    return (sds, cmfs, tmat)
 
 
 
 def processResult(a):
-    sds, cmfs, illuminantOriginal, illuminant, tmat = extractDataFromParameter(a)
-    spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, illuminant)
-    spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_m)
-    Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, illuminant, XYZ_to_RGB_Device_m)
-    waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
+    sds, cmfs, tmat = extractDataFromParameter(a)
+    spectral_to_XYZ_m = generateT_MATRIX_XYZ(cmfs, sds[3])
+    spectral_to_RGB_m = generateT_MATRIX_RGB(cmfs, sds[3], XYZ_to_RGB_m)
+    Spectral_to_Device_RGB_m = generateT_MATRIX_RGB(cmfs, sds[3], XYZ_to_RGB_Device_m)
+    waves = np.sort(np.asarray(a)[4 * numwaves:5 * numwaves])
     red_xyz = spectral_to_XYZ(sds[0], spectral_to_XYZ_m)
     green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
     blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
-    illuminant_xyz = spectral_to_XYZ(illuminant, spectral_to_XYZ_m)
-    # print("final XYZ results:", red_xyz, green_xyz, blue_xyz, illuminant_xyz)
+    illuminant_xyz = spectral_to_XYZ(sds[3], spectral_to_XYZ_m)
     red_sd = SpectralDistribution(
         (sds[0]),
         waves)
@@ -77,11 +61,11 @@ def processResult(a):
         waves)
     blue_sd.name = str(blue_xyz)
     illuminant_sd = SpectralDistribution(
-        (illuminant),
+        (sds[3]),
         waves)
     illuminant_sd.name = str(illuminant_xyz)
-    return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-            illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal, cmfs)
+    return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
+            illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, cmfs, tmat)
 
 
 def mix_test(sda, sdb, targetsd, ratio, tmat):
@@ -146,7 +130,7 @@ def minimize_slopes(sds):
 # having duplicate wavelengths is an error for Colour library
 # (and probably doesn't make sense)
 def uniqueWaves(a):
-    waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
+    waves = np.sort(np.asarray(a)[4 * numwaves:5 * numwaves])
     _, counts = np.unique(waves, return_counts=True)
     if np.any(counts > 1):
         return np.inf
@@ -156,7 +140,7 @@ def uniqueWaves(a):
 # try to have at least some difference between each wavelength
 # penalize less than waveVariance
 def varianceWaves(a):
-    waves = np.sort(np.asarray(a)[3 * numwaves:4 * numwaves])
+    waves = np.sort(np.asarray(a)[4 * numwaves:5 * numwaves])
     variance = np.min(np.diff(np.sort(waves)))
     if variance < waveVariance:
         return (waveVariance - variance)
@@ -165,15 +149,13 @@ def varianceWaves(a):
 
 def plotProgress(xk, convergence):
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-    illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, illuminantOriginal, cmfs) = processResult(xk)
-    # plotSDS([red_sd, green_sd, blue_sd], illuminant_sd)
+    illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, cmfs, tmat) = processResult(xk)
     red_delta = np.linalg.norm(red_xyz - XYZ[0])
     green_delta = np.linalg.norm(green_xyz - XYZ[1])
     blue_delta = np.linalg.norm(blue_xyz - XYZ[2])
     ilum_delta = np.linalg.norm(illuminant_xy - colour.XYZ_to_xy(illuminant_xyz))
     bumpiness = minimize_slopes([red_sd.values, green_sd.values, blue_sd.values])
     variance = varianceWaves(xk)
-    illum_shape = np.absolute(illuminant_sd.values - illuminantOriginal).sum()
     illum_bumpiness = minimize_slope(illuminant_sd.values)
     yellow = red_sd.values + green_sd.values
     mixtest1 = mix_test(blue_sd.values, yellow, green_sd.values, 0.5, spectral_to_XYZ_m)
@@ -194,10 +176,9 @@ def plotProgress(xk, convergence):
     print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
     print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
     print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
-    print("illum xy delta:  ", ilum_delta ** 2.0 * weight_illumiant, ilum_delta)
+    print("illum xy delta:  ", ilum_delta ** 2.0 * weight_illuminant_white, ilum_delta)
     print("bumpiness:       ", bumpiness * weight_minslope, bumpiness)
     print("wave variance    ", variance * weight_variance, variance)
-    print("illum shape diff ", illum_shape * weight_illuminant_shape, illum_shape )
     print("illum bumpiness  ", illum_bumpiness * weight_ill_slope, illum_bumpiness)
     print("lum drop rg      ", lum_drop_rg ** 2.0 * weight_lum_drop_rg, lum_drop_rg)
     print("lum drop rb      ", lum_drop_rb ** 2.0 * weight_lum_drop_rb, lum_drop_rb)

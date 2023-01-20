@@ -86,11 +86,11 @@ XYZ_to_RGB_Device_m = colorspaceTargetDevice.matrix_XYZ_to_RGB
 # conversions from light emission to reflectance must avoid absolute zero
 # because log(0.0) is undefined
 WGM_EPSILON = .0001
-MAX_REFLECTANCE = 0.98
+MAX_REFLECTANCE = 0.999
 MIN_REFLECTANCE = WGM_EPSILON
 
 # color matching functions to use when converting from spectral to XYZ 
-CMFS = colour.MSDS_CMFS['cie_2_1931'].copy()
+CMFS = colour.MSDS_CMFS['CIE 2015 10 Degree Standard Observer'].copy()
 
 
 # weights for differential evolution cost functions
@@ -100,7 +100,7 @@ weight_minslope = 0.001  # how important smooth reflectance curvers are
 weight_red = 100000. # how important matching the XYZ of red primary
 weight_green = 100000. # how important matching the XYZ of green primary
 weight_blue = 1000000. # how important matching the XYZ of blue primary
-weight_illumiant = 100000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
+weight_illuminant_white = 1000000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
 weight_variance = 10. # how important it is to have gaps between wavelengths 500nm, 505nm, vs 500.1nm, 500.2nm, etc
 weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf.  We must not have duplicates
 weight_illuminant_shape = 0.0001 # how important it is to keep the new illuminant the same shape as the canonical SD
@@ -113,4 +113,4 @@ weight_lum_drop_rg = 1. # how important to avoid drop in luminance when mixing r
 weight_lum_drop_rb = 100. # how important to avoid drop in luminance when mixing red and blue
 weight_lum_drop_gb = 1. # how important to avoid drop in luminance when mixing green and blue
 weight_visual_efficiency = 1. # how import to maximize visual efficiency of the chosen wavelengths
-weight_sum_to_one = 100. # how important to sum to MAX_REFLECTANCE for conservation of energy
+weight_sum_to_one = 1000. # how important to sum to MAX_REFLECTANCE for conservation of energy

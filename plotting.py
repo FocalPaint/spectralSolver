@@ -33,7 +33,7 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
 
             ratio = i / 50.
             # mix with linear RGB
-            srgb_colors[i][column*3 + 0] = colour.models.oetf_BT709(np.array(color) * ratio + (1. - ratio) * np.array(color_target))
+            srgb_colors[i][column*3 + 0] = colour.RGB_to_RGB(np.array(color) * ratio + (1. - ratio) * np.array(color_target), colorspace, colorspaceTargetDevice, apply_cctf_decoding=False,apply_cctf_encoding=True)
             # mix with pigment/spectral upsampling and weighted geometric mean
             pigment_color = spectral_Mix_WGM((rgb_to_Spectral(color_target, primarySDs)), (rgb_to_Spectral(color, primarySDs)), ratio)
             pigment_color_rgb = np.array(spectral_to_RGB(pigment_color, T_MATRIX_DEVICE))
@@ -43,9 +43,9 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
                 uv = colour.xy_to_Luv_uv(xy)
                 uv_list.append(uv)
                 
-            srgb_colors[i][column*3 + 1] = colour.models.oetf_BT709(pigment_color_rgb)
+            srgb_colors[i][column*3 + 1] = colour.RGB_to_RGB(pigment_color_rgb, colorspaceTargetDevice, colorspaceTargetDevice, apply_cctf_decoding=False,apply_cctf_encoding=True)
             # mix with perceptual RGB (OETF encoded before mixing)
-            srgb_colors[i][column*3 + 2] = colour.models.oetf_BT709(np.array(color)) * ratio + (1. - ratio) * colour.models.oetf_BT709(np.array(color_target))
+            srgb_colors[i][column*3 + 2] = colour.RGB_to_RGB(colour.models.oetf_BT709(np.array(color)) * ratio + (1. - ratio) * colour.models.oetf_BT709(np.array(color_target)), colorspace, colorspaceTargetDevice, apply_cctf_decoding=True,apply_cctf_encoding=True)
         
         matplotlib.pyplot.plot(*zip(*uv_list))
         

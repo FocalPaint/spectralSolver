@@ -45,14 +45,52 @@ def rgb_to_Spectral(rgb, spds):
     green = g
     blue = b
 
-    spectral_r = red * spds[0].values
+    whiteSpectrum = np.repeat(1.0, numwaves)
+    redSpectrum = spds[0].values
+    greenSpectrum = spds[1].values
+    blueSpectrum = spds[2].values
+    cyanSpectrum = spds[2].values + spds[1].values
+    magentaSpectrum = spds[2].values + spds[0].values
+    yellowSpectrum = spds[0].values + spds[1].values
 
-    spectral_g = green * spds[1].values
 
-    spectral_b = blue * spds[2].values
+    ret = np.repeat(0.0, numwaves)
+
+    # use a technique like Brian Smits uses upsample
+    if red <= green and red <= blue:
+        ret += red * whiteSpectrum
+        if green <= blue:
+            ret += (green - red) * cyanSpectrum
+            ret += (blue - green) * blueSpectrum
+        else:
+            ret += (blue - red) * cyanSpectrum
+            ret += (green - blue) * greenSpectrum
+    elif green <= red and green <= blue:
+        ret += green * whiteSpectrum
+        if red <= blue:
+            ret += (red - green) * magentaSpectrum
+            ret += (blue - red) * blueSpectrum
+        else:
+            ret += (blue - green) * magentaSpectrum
+            ret += (red - blue) * redSpectrum
+    elif blue <= red and blue <= green:
+        ret += blue * whiteSpectrum
+        if red <= green:
+            ret += (red - blue) * yellowSpectrum
+            ret += (green - red) * greenSpectrum
+        else:
+            ret += (green - blue) * yellowSpectrum
+            ret += (red - green) * redSpectrum
+
+    return ret
+    # spectral_r = red * spds[0].values
+
+    # spectral_g = green * spds[1].values
+
+    # spectral_b = blue * spds[2].values
     
  
-    return  np.sum([spectral_r, spectral_g, spectral_b], axis=0)
+    # return  np.sum([spectral_r, spectral_g, spectral_b], axis=0)
 
 
 def generateT_MATRIX_RGB(cmfs, illuminant, xyzMatrix):
