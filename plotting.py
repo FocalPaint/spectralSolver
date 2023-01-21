@@ -43,10 +43,9 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
                 uv = colour.xy_to_Luv_uv(xy)
                 uv_list.append(uv)
                 
-            srgb_colors[i][column*3 + 1] = colour.RGB_to_RGB(pigment_color_rgb, colorspaceTargetDevice, colorspaceTargetDevice, apply_cctf_decoding=False,apply_cctf_encoding=True)
+            srgb_colors[i][column*3 + 1] = colour.RGB_to_RGB(pigment_color_rgb, colorspaceTargetDevice, colorspaceTargetDevice, apply_cctf_decoding=False, apply_cctf_encoding=True)
             # mix with perceptual RGB (OETF encoded before mixing)
-            srgb_colors[i][column*3 + 2] = colour.RGB_to_RGB(colour.models.oetf_BT709(np.array(color)) * ratio + (1. - ratio) * colour.models.oetf_BT709(np.array(color_target)), colorspace, colorspaceTargetDevice, apply_cctf_decoding=True,apply_cctf_encoding=True)
-        
+            srgb_colors[i][column*3 + 2] = colour.RGB_to_RGB(colorspace.cctf_encoding(np.array(color)) * ratio + (1. - ratio) * colorspace.cctf_encoding(np.array(color_target)), colorspace, colorspaceTargetDevice, apply_cctf_decoding=True, apply_cctf_encoding=True)
         matplotlib.pyplot.plot(*zip(*uv_list))
         
     render(

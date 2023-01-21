@@ -77,6 +77,7 @@ colorset = np.array([[0.01, 0.01, 0.01], # black
 # should not have to edit below
 colorspace.use_derived_transformation_matrices(True)
 colorspacetarget.use_derived_transformation_matrices(True)
+colorspaceTargetDevice.use_derived_transformation_matrices(True)
 
 RGB_to_XYZ_m = colorspace.matrix_RGB_to_XYZ
 XYZ_to_RGB_m = colorspacetarget.matrix_XYZ_to_RGB
