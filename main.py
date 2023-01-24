@@ -62,10 +62,11 @@ def objectiveFunctionSingle(a, targetXYZ, spectral_to_XYZ_m):
 
 if __name__ == '__main__':
     spdBounds = (MIN_REFLECTANCE, MAX_REFLECTANCE)
+    spdBoundsIlluminant = (0.50 * MAX_REFLECTANCE, MAX_REFLECTANCE * 2.0)
     waveBounds = (begin, end)
     #illuminantModifierBounds = (0.75, 2.0)
     from itertools import repeat
-    bounds = (tuple(repeat(spdBounds, 4 * numwaves)) +
+    bounds = (tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat(spdBoundsIlluminant, numwaves)) +
                   tuple(repeat(waveBounds, numwaves))
                  )
     # format: 3 spectral primaries spd, 1 illum spd + wavelength indices in nm

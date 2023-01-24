@@ -1,0 +1,117 @@
+from enum import unique
+import colour
+import numpy as np
+
+
+# this is our model colorspace that was want to be multispectral
+# it's much easier to use a smaller gamut like sRGB, than wider gamutes
+colorspace = colour.models.RGB_COLOURSPACE_P3_D65
+#colorspace = colour.models.RGB_COLOURSPACE_sRGB
+
+# This is our target RGB colorspace
+# probably the same as our model
+#colorspacetarget = colour.models.RGB_COLOURSPACE_sRGB
+colorspacetarget = colour.models.RGB_COLOURSPACE_P3_D65
+
+# iOS/UIkit Metal uses sRGB primaries even if it is wide color <extended sRGB?>
+# use this for transforming to your device's screen if it needs to be different
+# from the model colorspace
+colorspaceTargetDevice = colour.models.RGB_COLOURSPACE_sRGB
+
+
+# wavelength range to solve for
+# maybe makes sense to make this as narrow as possible
+# maybe not
+begin = 430.0 
+end = 700.0
+
+# number of wavelengths/channels to solve for
+# wavelengths will be non-uniformly spaced
+# and will penalize solutions with less than waveVariance
+# distance between channels
+numwaves = 12
+#numwaves = 8
+waveVariance = 2.0
+
+# max iterations for solver
+maxiter = 100000
+# population size for diffev
+npop = 20
+# tolerance
+tol = 0.00001
+# cpu cores to use, -1 is all cores
+workers = -1
+
+# solve additional colors? see munsell.py
+# and add your own XYZ colors
+# solveAdditionalXYZs = True
+solveAdditionalXYZs = True
+
+additionalXYZs = ([ 0.46780336,  0.23689442,  0.07897962], [ 0.60375823,  0.48586636,  0.08183366], [ 0.69141481,  0.72890368,  0.03672838], [ 0.53874774,  0.74048729,  0.04405483], [ 0.36800563,  0.72124238,  0.52510832], [ 0.45262124,  0.75488848,  0.9837921 ], [ 0.38936903,  0.52007146,  1.16368056], [ 0.47838485,  0.48171774,  1.15655669], [ 0.58214621,  0.39101099,  1.1441827 ], [ 0.59798203,  0.31675163,  0.46063757])
+
+# plot color mixes and spectral curves
+# (matplotlib)
+plotMixes = True
+
+illuminant_xy = colour.CCS_ILLUMINANTS['cie_2_1931']['D65'].copy()
+illuminant_XYZ = colour.xy_to_XYZ(illuminant_xy)
+illuminant_SPD = colour.SDS_ILLUMINANTS['D65'].copy()
+
+# list of colors to plot mixes with
+colorset = np.array([[0.01, 0.01, 0.01], # black
+                   [1., 1., 1.],  # white
+                   [0., 0., 1.],  # blue
+                   [0., 1., 0.],  # green
+                   [1., 0., 0.],  # red
+                   [0., 1., 1.],  # cyan
+                   [1., 1., 0.],  # yellow
+                   [1., 0., 1.],  # magenta
+                   [1., 0.18, 0.], # orange
+                   [1., 0., 0.18], # fuscia
+                   [0.18, 1., 0.], # lime 
+                   [0.18, 0., 1.], #purple
+                   [0., .18, 1.],  #sky blue
+                   [0., 1., 0.18]])#sea foam  
+
+
+# should not have to edit below
+colorspace.use_derived_transformation_matrices(True)
+colorspacetarget.use_derived_transformation_matrices(True)
+colorspaceTargetDevice.use_derived_transformation_matrices(True)
+
+RGB_to_XYZ_m = colorspace.matrix_RGB_to_XYZ
+XYZ_to_RGB_m = colorspacetarget.matrix_XYZ_to_RGB
+
+XYZ_to_RGB_Device_m = colorspaceTargetDevice.matrix_XYZ_to_RGB
+
+# conversions from light emission to reflectance must avoid absolute zero
+# because log(0.0) is undefined
+WGM_EPSILON = .0001
+MAX_REFLECTANCE = 0.999
+MIN_REFLECTANCE = WGM_EPSILON
+
+# color matching functions to use when converting from spectral to XYZ 
+CMFS = colour.MSDS_CMFS['CIE 2015 10 Degree Standard Observer'].copy()
+
+
+# weights for differential evolution cost functions
+# adjust these if necessary, for instance if your blue primary is not matching, bump it up x 10 or something
+
+weight_minslope = 0.001  # how important smooth reflectance curvers are
+weight_red = 100000. # how important matching the XYZ of red primary
+weight_green = 100000. # how important matching the XYZ of green primary
+weight_blue = 1000000. # how important matching the XYZ of blue primary
+weight_illuminant_white = 1000000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
+weight_variance = 10. # how important it is to have gaps between wavelengths 500nm, 505nm, vs 500.1nm, 500.2nm, etc
+weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf.  We must not have duplicates
+weight_illuminant_shape = 0.0001 # how important it is to keep the new illuminant the same shape as the canonical SD
+weight_ill_slope = 0.001 # how important it is for the new illuminant to be smooth
+weight_mixtest1 = 100. # how important it is for blue + yellow to make green
+weight_mixtest2 = 10. # how important it is for blue + white to be more cyan instead of purple
+weight_mixtest3 = 10. # how important it is for blue + red to be purple.  Yeah.
+# weight_mixtest4 = 10. # how important it is for dark purple + white to go cyanish
+weight_lum_drop_rg = 1. # how important to avoid drop in luminance when mixing red and green
+weight_lum_drop_rb = 100. # how important to avoid drop in luminance when mixing red and blue
+weight_lum_drop_gb = 1. # how important to avoid drop in luminance when mixing green and blue
+weight_visual_efficiency = 1. # how import to maximize visual efficiency of the chosen wavelengths
+weight_sum_to_one = 1000. # how important to sum to MAX_REFLECTANCE for conservation of energy
