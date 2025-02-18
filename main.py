@@ -64,8 +64,12 @@ def objectiveFunction(a):
     # red and green should be greyish
     result += mix_test(sds[0], sds[1], np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
 
-    # primaries should sum to one to help conserve energy or something
+    # primaries should sum to ~one for each channel to help conserve energy or something
     result += ((np.sum([sds[0], sds[1], sds[2]],axis=0) - MAX_REFLECTANCE) ** 2.0).sum() * weight_sum_to_one
+
+    # each primary integral should be 1.0
+    result += ((np.sum([sds[0], sds[1], sds[2]],axis=1) - 1.0) ** 2.0).sum() * weight_sum_to_one
+
     return result
 
 
