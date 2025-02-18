@@ -22,35 +22,49 @@ whiteSpectrum = np.repeat(1.0, numwaves)
 
 def objectiveFunction(a):
 
-    sds, cmfs, tmat = extractDataFromParameter(a)
+    sds, tmat = extractDataFromParameter(a)
 
     result = minimize_slopes(sds) * weight_minslope
+    result += minimize_slopes(tmat) * weight_minslope
+
     result += match_XYZ(sds[0], XYZ[0], tmat) ** 2.0 * weight_red
     result += match_XYZ(sds[1], XYZ[1], tmat) ** 2.0 * weight_green
     result += match_XYZ(sds[2], XYZ[2], tmat) ** 2.0 * weight_blue
     result += match_XYZ(whiteSpectrum, illuminant_XYZ, tmat) ** 2.0 * weight_illuminant_white
-    result += varianceWaves(a) * weight_variance
-    result += uniqueWaves(a) * weight_uniqueWaves
+    #result += varianceWaves(a) * weight_variance
+    #result += uniqueWaves(a) * weight_uniqueWaves
     
     # nudge b+y = green
-    yellow = sds[0] + sds[1]
-    result += mix_test(sds[2], yellow, sds[1], 0.5, tmat) ** 2.0 * weight_mixtest1
+    yellow = sds[0] + sds[1] + (sds[2] * 0.05)
+    green = (sds[0] * 0.05 + sds[1] + (sds[2] * 0.05)) * 0.9
+    result += mix_test(sds[2], yellow, green, 0.5, tmat) ** 2.0 * weight_mixtest1
     # nudge b+w towards desaturated cyan
-    cyan = sds[1] + sds[2] + (sds[0] * 0.05)
+    cyan = sds[1] + sds[2] + (sds[0] * 0.5)
     result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) ** 2.0 * weight_mixtest2
+    #blue and green should be cyan
+    purecyan = (sds[1] + sds[2]) * 0.9
+    result += mix_test(sds[2], sds[0], purecyan, 0.5, tmat) ** 2.0 * weight_mixtest2
     # nudge b+r should be purple
-    purple = sds[0] + sds[2]
+    purple = (sds[0] + sds[2]) * 0.9
     result += mix_test(sds[0], sds[2], purple, 0.5, tmat) ** 2.0 * weight_mixtest3
+    # orange
+    orange = (sds[0] + sds[1])
+    result += mix_test(sds[0], sds[1], orange, 0.5, tmat) ** 2.0 * weight_mixtest3
 
-    # penalize large drop in luminance when mixing primaries
-    result += luminance_drop(sds[0], sds[1], 0.5, tmat) ** 2.0 * weight_lum_drop_rg
-    result += luminance_drop(sds[0], sds[2], 0.5, tmat) ** 2.0 * weight_lum_drop_rb
-    result += luminance_drop(sds[1], sds[2], 0.5, tmat) ** 2.0 * weight_lum_drop_gb
+    # red mix straight with white, try to avoid going yellowish
+    lightRed = (sds[1] * 0.5) + (sds[2] * 0.5) + sds[0]
+    result += mix_test(sds[0], np.repeat(1.0, numwaves), lightRed, 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
 
-    # encourage maximal visual efficiency ( high Y )
-    result += -np.sum(cmfs, axis=0)[1] ** 2.0 * weight_visual_efficiency
+    # blue and orange should be greyish
+    result += mix_test(sds[2], orange, np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
 
-    # sum to one
+    # purple and yellow should be greyish
+    result += mix_test(sds[2] + sds[0], sds[0] + sds[1], np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
+
+    # red and green should be greyish
+    result += mix_test(sds[0], sds[1], np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
+
+    # primaries should sum to one to help conserve energy or something
     result += ((np.sum([sds[0], sds[1], sds[2]],axis=0) - MAX_REFLECTANCE) ** 2.0).sum() * weight_sum_to_one
     return result
 
@@ -62,16 +76,11 @@ def objectiveFunctionSingle(a, targetXYZ, spectral_to_XYZ_m):
 
 if __name__ == '__main__':
     spdBounds = (MIN_REFLECTANCE, MAX_REFLECTANCE)
-    spdBoundsIlluminant = (0.50 * MAX_REFLECTANCE, MAX_REFLECTANCE * 2.0)
-    waveBounds = (begin, end)
-    #illuminantModifierBounds = (0.75, 2.0)
     from itertools import repeat
-    bounds = (tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat(spdBoundsIlluminant, numwaves)) +
-                  tuple(repeat(waveBounds, numwaves))
-                 )
-    # format: 3 spectral primaries spd, 1 illum spd + wavelength indices in nm
+    bounds = (tuple(repeat(spdBounds, 3 * numwaves)) + tuple(repeat((MIN_REFLECTANCE, 2.0), 3 * numwaves)))
+    # format: 3 spectral primaries spd, xyz transform matrix
     initialGuess = np.concatenate((np.repeat((MAX_REFLECTANCE),
-        (numwaves * 4)), np.linspace(begin, end, num=numwaves, endpoint=True)))
+        (numwaves * 3)), np.repeat(1.0, (numwaves * 3))))
     print("initial guess is", initialGuess)
 
     result = differential_evolution(
@@ -88,8 +97,8 @@ if __name__ == '__main__':
         disp=True
     ).x
 
-    (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-        illuminant_xyz, red_sd, green_sd, blue_sd, illuminant_sd, cmfs, tmat) = processResult(result)
+    (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
+            red_sd, green_sd, blue_sd, tmat) = processResult(result)
 
     mspds = []
     if solveAdditionalXYZs:
@@ -138,5 +147,5 @@ if __name__ == '__main__':
 
     
     if plotMixes:
-        plotSDS([red_sd, green_sd, blue_sd], illuminant_sd)
+        plotSDS([red_sd, green_sd, blue_sd])
         plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, [red_sd, green_sd, blue_sd])

@@ -93,15 +93,14 @@ def rgb_to_Spectral(rgb, spds):
     # return  np.sum([spectral_r, spectral_g, spectral_b], axis=0)
 
 
-def generateT_MATRIX_RGB(cmfs, illuminant, xyzMatrix):
-    cmfs_ = cmfs.transpose()
-    T_MATRIX = np.matmul(xyzMatrix, np.matmul(cmfs_, np.diag(illuminant)) # weight for whitepoint
-                               / np.matmul(cmfs_[1], illuminant))
+def generateT_MATRIX_RGB(tmat, xyzMatrix):
+    # tmat_ = tmat.transpose()
+    T_MATRIX = np.matmul(xyzMatrix, tmat)
     return T_MATRIX
 
 
-def generateT_MATRIX_XYZ(cmfs, illuminant):
-    cmfs_ = cmfs.transpose()
-    T_MATRIX = (np.matmul(cmfs_, np.diag(illuminant)) # weight for whitepoint
-                               / np.matmul(cmfs_[1], illuminant))
-    return T_MATRIX
+# def generateT_MATRIX_XYZ(cmfs, illuminant):
+#     cmfs_ = cmfs.transpose()
+#     T_MATRIX = (np.matmul(cmfs_, np.diag(illuminant)) # weight for whitepoint
+#                                / np.matmul(cmfs_[1], illuminant))
+#     return T_MATRIX

@@ -8,6 +8,9 @@ Generates 3 spectral reflectance distributions in range > 0.0 and < 1.0, along w
 
 
 ```
+python3 -m venv .
+source ./bin/activate
+
 python3 -m pip install git+https://github.com/colour-science/colour@develop
 python3 -m pip install matplotlib
 python3 -m pip install scipy
