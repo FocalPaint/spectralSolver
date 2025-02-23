@@ -24,10 +24,11 @@ def objectiveFunction(a):
 
     sds, tmat = extractDataFromParameter(a)
 
-    result = minimize_slopes(sds) * weight_minslope
-    result += minimize_slopes(tmat) * weight_minslope
+    # do we care about slope?
+    # result = minimize_slopes(sds) * weight_minslope
+    # result += minimize_slopes(tmat) * weight_minslope
 
-    result += match_XYZ(sds[0], XYZ[0], tmat) ** 2.0 * weight_red
+    result = match_XYZ(sds[0], XYZ[0], tmat) ** 2.0 * weight_red
     result += match_XYZ(sds[1], XYZ[1], tmat) ** 2.0 * weight_green
     result += match_XYZ(sds[2], XYZ[2], tmat) ** 2.0 * weight_blue
     result += match_XYZ(whiteSpectrum, illuminant_XYZ, tmat) ** 2.0 * weight_illuminant_white

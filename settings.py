@@ -1,1 +1,1 @@
-settings.py.p3
+settings-p3.py
