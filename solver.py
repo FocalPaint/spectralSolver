@@ -44,21 +44,9 @@ def processResult(a):
     green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
     blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
     # illuminant_xyz = spectral_to_XYZ(sds[3], spectral_to_XYZ_m)
-    red_sd = SpectralDistribution(
-        (sds[0]),
-        waves)
-    red_sd.name = str(red_xyz)
-    green_sd = SpectralDistribution(
-        (sds[1]),
-        waves)
-    green_sd.name = str(green_xyz)
-    blue_sd = SpectralDistribution(
-        (sds[2]),
-        waves)
-    blue_sd.name = str(blue_xyz)
     # illuminant_sd.name = str(illuminant_xyz)
     return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
-            red_sd, green_sd, blue_sd, tmat)
+            sds, tmat)
 
 
 def mix_test(sda, sdb, targetsd, ratio, tmat):
@@ -115,18 +103,17 @@ def minimize_slopes(sds):
 
 def plotProgress(xk, convergence):
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-    red_sd, green_sd, blue_sd, cmfs) = processResult(xk)
+    sds, cmfs) = processResult(xk)
     red_delta = np.linalg.norm(red_xyz - XYZ[0])
     green_delta = np.linalg.norm(green_xyz - XYZ[1])
     blue_delta = np.linalg.norm(blue_xyz - XYZ[2])
-    sums = ((np.sum([red_sd.values, green_sd.values, blue_sd.values],axis=0) - 1.0) ** 2.0).sum()
+    sums = ((np.sum(sds,axis=0) - 1.0) ** 2.0).sum()
 
     print("cost metric (smaller = better), weighted cost, actual cost value")
     print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
     print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
     print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
     print("sd sums to one   ", sums * weight_sum_to_one, sums)
-    print("using channels: ", waves)
     print("`touch halt` to exit early with this solution.")
     print("---")
 

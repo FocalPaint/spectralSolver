@@ -5,13 +5,13 @@ import numpy as np
 
 # this is our model colorspace that was want to be multispectral
 # it's much easier to use a smaller gamut like sRGB, than wider gamutes
-colorspace = colour.models.RGB_COLOURSPACE_P3_D65
-#colorspace = colour.models.RGB_COLOURSPACE_sRGB
+#colorspace = colour.models.RGB_COLOURSPACE_P3_D65
+colorspace = colour.models.RGB_COLOURSPACE_sRGB
 
 # This is our target RGB colorspace
 # probably the same as our model
-#colorspacetarget = colour.models.RGB_COLOURSPACE_sRGB
-colorspacetarget = colour.models.RGB_COLOURSPACE_P3_D65
+colorspacetarget = colour.models.RGB_COLOURSPACE_sRGB
+#colorspacetarget = colour.models.RGB_COLOURSPACE_P3_D65
 
 # iOS/UIkit Metal uses sRGB primaries even if it is wide color <extended sRGB?>
 # use this for transforming to your device's screen if it needs to be different
@@ -87,15 +87,15 @@ MIN_REFLECTANCE = WGM_EPSILON
 # adjust these if necessary, for instance if your blue primary is not matching, bump it up x 10 or something
 
 weight_minslope = 1  # how important smooth reflectance curvers are
-weight_red = 100000. # how important matching the XYZ of red primary
-weight_green = 10000. # how important matching the XYZ of green primary
-weight_blue = 10000. # how important matching the XYZ of blue primary
+weight_red = 1000000. # how important matching the XYZ of red primary
+weight_green = 100000. # how important matching the XYZ of green primary
+weight_blue = 100000. # how important matching the XYZ of blue primary
 weight_illuminant_white = 1000. # how important matching the xy chromaticity of the illuminant when reflectance is 1.0
 # weight_variance = 10. # how important it is to have gaps between wavelengths 500nm, 505nm, vs 500.1nm, 500.2nm, etc
 # weight_uniqueWaves = 1. # don't bother fiddling this is 0 or inf.  We must not have duplicates
 # weight_illuminant_shape = 0.0001 # how important it is to keep the new illuminant the same shape as the canonical SD
 # weight_ill_slope = 0.001 # how important it is for the new illuminant to be smooth
-weight_mixtest1 = 100. # how important it is for blue + yellow to make green
+weight_mixtest1 = 1000. # how important it is for blue + yellow to make green
 weight_mixtest2 = 10. # how important it is for blue + white to be more cyan instead of purple
 weight_mixtest3 = 10. # how important it is for blue + red to be purple.  Yeah.
 # weight_mixtest4 = 10. # how important it is for dark purple + white to go cyanish

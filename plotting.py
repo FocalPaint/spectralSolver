@@ -15,6 +15,32 @@ from tools import *
 def plotSDS(spds):
     colour.plotting.plot_multi_sds([spds[0], spds[1], spds[2]], use_sds_colours=True, normalise_sds_colours=False)
 
+def draw_primaries(T_MATRIX_XYZ):
+    colour.plotting.plot_RGB_colourspaces_in_chromaticity_diagram_CIE1976UCS(colourspaces=colorspace, standalone=False)
+
+    uv_list = []
+
+    pigment_xyz = spectral_to_XYZ([1,0,0], T_MATRIX_XYZ)
+    xy = colour.XYZ_to_xy(pigment_xyz)
+    uv1 = colour.xy_to_Luv_uv(xy)
+    uv_list.append(uv1)
+
+    pigment_xyz = spectral_to_XYZ([0,1,0], T_MATRIX_XYZ)
+    xy = colour.XYZ_to_xy(pigment_xyz)
+    uv2 = colour.xy_to_Luv_uv(xy)
+    uv_list.append(uv2)
+
+    pigment_xyz = spectral_to_XYZ([0,0,1], T_MATRIX_XYZ)
+    xy = colour.XYZ_to_xy(pigment_xyz)
+    uv3 = colour.xy_to_Luv_uv(xy)
+    uv_list.append(uv3)
+    uv_list.append(uv1)
+
+    matplotlib.pyplot.plot(*zip(*uv_list), 'bo')
+
+    render(
+    standalone=True)
+
 def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
     # generate additional columns with 25% and 10% intensity
     colors = np.concatenate((colorset, colorset *0.18, colorset * 0.09), axis=0)
@@ -47,6 +73,8 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
             # mix with perceptual RGB (OETF encoded before mixing)
             srgb_colors[i][column*3 + 2] = colour.RGB_to_RGB(colorspace.cctf_encoding(np.array(color)) * ratio + (1. - ratio) * colorspace.cctf_encoding(np.array(color_target)), colorspace, colorspaceTargetDevice, apply_cctf_decoding=True, apply_cctf_encoding=True)
         matplotlib.pyplot.plot(*zip(*uv_list))
+        
+
         
     render(
     standalone=True)

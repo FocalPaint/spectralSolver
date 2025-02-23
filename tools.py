@@ -46,12 +46,12 @@ def rgb_to_Spectral(rgb, spds):
     blue = b
 
     whiteSpectrum = np.repeat(1.0, numwaves)
-    redSpectrum = spds[0].values
-    greenSpectrum = spds[1].values
-    blueSpectrum = spds[2].values
-    cyanSpectrum = spds[2].values + spds[1].values
-    magentaSpectrum = spds[2].values + spds[0].values
-    yellowSpectrum = spds[0].values + spds[1].values
+    redSpectrum = spds[0]
+    greenSpectrum = spds[1]
+    blueSpectrum = spds[2]
+    cyanSpectrum = spds[2] + spds[1]
+    magentaSpectrum = spds[2] + spds[0]
+    yellowSpectrum = spds[0] + spds[1]
 
 
     ret = np.repeat(0.0, numwaves)

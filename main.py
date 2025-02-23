@@ -6,7 +6,7 @@ from colour.plotting import *
 
 from scipy.optimize import differential_evolution, basinhopping
 from solver import *
-from plotting import plotSDS, plotColorMixes
+from plotting import draw_primaries, plotColorMixes
 from tools import generateT_MATRIX_RGB
 from itertools import repeat
 from settings import *
@@ -52,8 +52,8 @@ def objectiveFunction(a):
     result += mix_test(sds[0], sds[1], orange, 0.5, tmat) ** 2.0 * weight_mixtest3
 
     # red mix straight with white, try to avoid going yellowish
-    lightRed = (sds[1] * 0.5) + (sds[2] * 0.5) + sds[0]
-    result += mix_test(sds[0], np.repeat(1.0, numwaves), lightRed, 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
+    lightRed = (sds[1] * 0.2) + (sds[2] * 0.5) + sds[0]
+    result += mix_test(sds[0], np.repeat(1.0, numwaves), lightRed, 0.5, tmat) ** 2.0 * weight_mixtest1 
 
     # blue and orange should be greyish
     result += mix_test(sds[2], orange, np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
@@ -69,6 +69,10 @@ def objectiveFunction(a):
 
     # each primary integral should be 1.0
     result += ((np.sum([sds[0], sds[1], sds[2]],axis=1) - 1.0) ** 2.0).sum() * weight_sum_to_one
+
+    # tmat center weight sum to one
+    result += ((np.sum(tmat[1]) - 1.0) ** 2.0) * weight_sum_to_one
+
 
     return result
 
@@ -102,7 +106,7 @@ if __name__ == '__main__':
     ).x
 
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
-            red_sd, green_sd, blue_sd, tmat) = processResult(result)
+            sds, tmat) = processResult(result)
 
     mspds = []
     if solveAdditionalXYZs:
@@ -126,22 +130,16 @@ if __name__ == '__main__':
 
     print("optimal (maybe) wavelengths:", np.array2string(waves, separator=', '))
 
-    print("Spectral red is")
-    print(np.array2string(red_sd.values, separator=', '))
+    print("rgb_to_foo_m is")
+    print(np.array2string(sds, separator=', '))
 
-    print("Spectral green is")
-    print(np.array2string(green_sd.values, separator=', '))
-
-    print("Spectral blue is")
-    print(np.array2string(blue_sd.values, separator=', '))
-    
-    print("spectral_to_XYZ_m is")
+    print("foo_to_XYZ_m is")
     print(np.array2string(spectral_to_XYZ_m, separator=', '))
 
-    print("spectral_to_RGB_m is")
+    print("foo_to_RGB_m is")
     print(np.array2string(spectral_to_RGB_m, separator=', '))
 
-    print("Spectral_to_Device_RGB_m is")
+    print("foo_to_Device_RGB_m is")
     print(np.array2string(Spectral_to_Device_RGB_m, separator=', '))
 
     if solveAdditionalXYZs:
@@ -151,5 +149,5 @@ if __name__ == '__main__':
 
     
     if plotMixes:
-        plotSDS([red_sd, green_sd, blue_sd])
-        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, [red_sd, green_sd, blue_sd])
+        draw_primaries(spectral_to_XYZ_m)
+        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds)
