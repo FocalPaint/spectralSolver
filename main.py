@@ -36,34 +36,37 @@ def objectiveFunction(a):
     #result += uniqueWaves(a) * weight_uniqueWaves
     
     # nudge b+y = green
-    yellow = sds[0] + sds[1] + (sds[2] * 0.05)
-    green = (sds[0] * 0.05 + sds[1] + (sds[2] * 0.05)) * 0.9
-    result += mix_test(sds[2], yellow, green, 0.5, tmat) ** 2.0 * weight_mixtest1
+    yellow = sds[0] + sds[1]
+    purple = (sds[0] * 0.5) + sds[2]
+    orange = sds[0] + (sds[1] * 0.5)
+    # green = (sds[0] + sds[1] + (sds[2])) 
+    # result += mix_test(sds[2], yellow, green, 0.5, tmat) ** 2.0 * weight_mixtest1
+
+    result += mix_test_RGB(sds[2], yellow, np.array([0.214, 1.0, 0.214]), 0.5, tmat) ** 2.0 * weight_mixtest1
     # nudge b+w towards desaturated cyan
-    cyan = sds[1] + sds[2] + (sds[0] * 0.5)
-    result += mix_test(sds[2], np.repeat(1.0, numwaves), cyan, 0.5, tmat) ** 2.0 * weight_mixtest2
+    # cyan = sds[1] + sds[2] + (sds[0] * 0.5)
+    result += mix_test_RGB(sds[2], np.repeat(1.0, numwaves), [0.214, 0.3185, 1.0], 0.5, tmat) ** 2.0 * weight_mixtest2
     #blue and green should be cyan
-    purecyan = (sds[1] + sds[2]) * 0.9
-    result += mix_test(sds[2], sds[0], purecyan, 0.5, tmat) ** 2.0 * weight_mixtest2
+    result += mix_test_RGB(sds[2], sds[1], np.array([0.0, 1.0, 1.0]), 0.5, tmat) ** 2.0 * weight_mixtest2
     # nudge b+r should be purple
-    purple = (sds[0] + sds[2]) * 0.9
-    result += mix_test(sds[0], sds[2], purple, 0.5, tmat) ** 2.0 * weight_mixtest3
+    
+    result += mix_test_RGB(sds[0], purple, np.array([0.5, 0.0, 1.0]), 0.5, tmat) ** 2.0 * weight_mixtest3
     # orange
-    orange = (sds[0] + sds[1])
-    result += mix_test(sds[0], sds[1], orange, 0.5, tmat) ** 2.0 * weight_mixtest3
+    
+    result += mix_test_RGB(sds[0], orange, np.array([1.0, 0.5, 0.0]), 0.5, tmat) ** 2.0 * weight_mixtest3
 
     # red mix straight with white, try to avoid going yellowish
-    lightRed = (sds[1] * 0.2) + (sds[2] * 0.5) + sds[0]
-    result += mix_test(sds[0], np.repeat(1.0, numwaves), lightRed, 0.5, tmat) ** 2.0 * weight_mixtest1 
+    # lightRed = (sds[1] * 0.2) + (sds[2] * 0.5) + sds[0]
+    result += mix_test_RGB(sds[0], np.repeat(1.0, numwaves), np.array([1.0, 0.214, 0.214]), 0.5, tmat) ** 2.0 * weight_mixtest1 
 
     # blue and orange should be greyish
-    result += mix_test(sds[2], orange, np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
+    result += mix_test_RGB(sds[2], orange, np.repeat(0.214, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
 
     # purple and yellow should be greyish
-    result += mix_test(sds[2] + sds[0], sds[0] + sds[1], np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
+    result += mix_test_RGB(sds[2] + sds[0], sds[0] + sds[1], np.repeat(0.214, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
 
     # red and green should be greyish
-    result += mix_test(sds[0], sds[1], np.repeat(0.5, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
+    result += mix_test_RGB(sds[0], sds[1], np.repeat(0.214, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
 
     # primaries should sum to ~one for each channel to help conserve energy or something
     result += ((np.sum([sds[0], sds[1], sds[2]],axis=0) - MAX_REFLECTANCE) ** 2.0).sum() * weight_sum_to_one

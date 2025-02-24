@@ -59,6 +59,16 @@ def mix_test(sda, sdb, targetsd, ratio, tmat):
     diff = np.linalg.norm(mixedxy - targetxy)
     return diff
 
+def mix_test_RGB(sda, sdb, targetRGB, ratio, tmat):
+    mixed = spectral_Mix_WGM(sda, sdb, ratio)
+    mixedXYZ = spectral_to_XYZ(mixed, tmat)
+    mixedxy = XYZ_to_xy(mixedXYZ)
+    targetXYZ = colour.RGB_to_XYZ(targetRGB, illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
+    targetxy = XYZ_to_xy(targetXYZ)
+
+    diff = np.linalg.norm(mixedxy - targetxy)
+    return diff
+
 
 def match_XYZ(a, targetXYZ, spectral_to_XYZ_m):
     """
