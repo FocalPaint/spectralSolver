@@ -17,7 +17,7 @@ np.set_printoptions(formatter={"float": "{:0.15f}".format}, threshold=sys.maxsiz
 def func(a):
     return 0.0
 sd = np.repeat(0.0, numwaves)
-whiteSpectrum = np.repeat(1.0, numwaves)
+# whiteSpectrum = np.repeat(1.0, numwaves)
 
 
 def objectiveFunction(a):
@@ -31,7 +31,7 @@ def objectiveFunction(a):
     result = match_XYZ(sds[0], XYZ[0], tmat) ** 2.0 * weight_red
     result += match_XYZ(sds[1], XYZ[1], tmat) ** 2.0 * weight_green
     result += match_XYZ(sds[2], XYZ[2], tmat) ** 2.0 * weight_blue
-    result += match_XYZ(whiteSpectrum, illuminant_XYZ, tmat) ** 2.0 * weight_illuminant_white
+    result += match_XYZ([1.0, 1.0, 1.0], white_XYZ, tmat) ** 2.0 * weight_illuminant_white * 1000.
     #result += varianceWaves(a) * weight_variance
     #result += uniqueWaves(a) * weight_uniqueWaves
     
@@ -41,6 +41,8 @@ def objectiveFunction(a):
     orange = sds[0] + (sds[1] * 0.5)
     # green = (sds[0] + sds[1] + (sds[2])) 
     # result += mix_test(sds[2], yellow, green, 0.5, tmat) ** 2.0 * weight_mixtest1
+
+    result += mix_test_RGB(sds.sum(axis=0), sds.sum(axis=0), np.array([1., 1., 1.]), 0.5, tmat) ** 2.0 * weight_mixtest1 * 1000
 
     result += mix_test_RGB(sds[2], yellow, np.array([0.214, 1.0, 0.214]), 0.5, tmat) ** 2.0 * weight_mixtest1
     # nudge b+w towards desaturated cyan
@@ -54,6 +56,11 @@ def objectiveFunction(a):
     # orange
     
     result += mix_test_RGB(sds[0], orange, np.array([1.0, 0.5, 0.0]), 0.5, tmat) ** 2.0 * weight_mixtest3
+
+    # white and white
+
+    result += mix_test_RGB(sds.sum(axis=0), sds.sum(axis=0), np.array([1.0, 1.0, 1.0]), 0.5, tmat) ** 2.0 * weight_mixtest1 * 100.
+
 
     # red mix straight with white, try to avoid going yellowish
     # lightRed = (sds[1] * 0.2) + (sds[2] * 0.5) + sds[0]
@@ -82,8 +89,8 @@ def objectiveFunction(a):
 
 
 def objectiveFunctionSingle(a, targetXYZ, spectral_to_XYZ_m):
-    result = minimize_slope(a)
-    result += match_XYZ(a, targetXYZ, spectral_to_XYZ_m) * 10000.
+    # result = minimize_slope(a)
+    result = match_XYZ(a, targetXYZ, spectral_to_XYZ_m) * 1000.
     return result
 
 if __name__ == '__main__':
@@ -110,7 +117,7 @@ if __name__ == '__main__':
     ).x
 
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
-            sds, tmat) = processResult(result)
+            sds, illuminant_xyz, tmat) = processResult(result)
 
     mspds = []
     if solveAdditionalXYZs:

@@ -11,6 +11,7 @@ from os import remove
 red_XYZ =  colour.RGB_to_XYZ([1.0,0.0,0.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
 green_XYZ = colour.RGB_to_XYZ([0.0,1.0,0.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
 blue_XYZ = colour.RGB_to_XYZ([0.0,0.0,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
+white_XYZ = colour.RGB_to_XYZ([1.0,1.0,1.0], illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
 
 XYZ = [red_XYZ, green_XYZ, blue_XYZ]
 
@@ -43,10 +44,10 @@ def processResult(a):
     red_xyz = spectral_to_XYZ(sds[0], spectral_to_XYZ_m)
     green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
     blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
-    # illuminant_xyz = spectral_to_XYZ(sds[3], spectral_to_XYZ_m)
+    illuminant_xyz = spectral_to_XYZ([1.0, 1.0, 1.0], spectral_to_XYZ_m)
     # illuminant_sd.name = str(illuminant_xyz)
     return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
-            sds, tmat)
+            sds, illuminant_xyz, tmat)
 
 
 def mix_test(sda, sdb, targetsd, ratio, tmat):
@@ -113,16 +114,18 @@ def minimize_slopes(sds):
 
 def plotProgress(xk, convergence):
     (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-    sds, cmfs) = processResult(xk)
+    sds, illuminant_xyz, cmfs) = processResult(xk)
     red_delta = np.linalg.norm(red_xyz - XYZ[0])
     green_delta = np.linalg.norm(green_xyz - XYZ[1])
     blue_delta = np.linalg.norm(blue_xyz - XYZ[2])
+    white_delta = np.linalg.norm(illuminant_xyz - white_XYZ)
     sums = ((np.sum(sds,axis=0) - 1.0) ** 2.0).sum()
 
     print("cost metric (smaller = better), weighted cost, actual cost value")
     print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
     print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
     print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
+    print("white delta:      ", white_delta ** 2.0 * weight_illuminant_white, white_delta)
     print("sd sums to one   ", sums * weight_sum_to_one, sums)
     print("`touch halt` to exit early with this solution.")
     print("---")
