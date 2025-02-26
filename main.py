@@ -31,7 +31,7 @@ def objectiveFunction(a):
     result = match_XYZ(sds[0], XYZ[0], tmat) ** 2.0 * weight_red
     result += match_XYZ(sds[1], XYZ[1], tmat) ** 2.0 * weight_green
     result += match_XYZ(sds[2], XYZ[2], tmat) ** 2.0 * weight_blue
-    result += match_XYZ([1.0, 1.0, 1.0], white_XYZ, tmat) ** 2.0 * weight_illuminant_white * 1000.
+    result += match_XYZ(np.repeat(1.0, numwaves), white_XYZ, tmat) ** 2.0 * weight_illuminant_white * 1000.
     #result += varianceWaves(a) * weight_variance
     #result += uniqueWaves(a) * weight_uniqueWaves
     
@@ -67,19 +67,19 @@ def objectiveFunction(a):
     result += mix_test_RGB(sds[0], np.repeat(1.0, numwaves), np.array([1.0, 0.214, 0.214]), 0.5, tmat) ** 2.0 * weight_mixtest1 
 
     # blue and orange should be greyish
-    result += mix_test_RGB(sds[2], orange, np.repeat(0.214, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
+    result += mix_test_RGB(sds[2], orange, np.repeat(0.214, 3), 0.5, tmat) ** 2.0 * weight_mixtest1
 
     # purple and yellow should be greyish
-    result += mix_test_RGB(sds[2] + sds[0], sds[0] + sds[1], np.repeat(0.214, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1
+    result += mix_test_RGB(sds[2] + sds[0], sds[0] + sds[1], np.repeat(0.214, 3), 0.5, tmat) ** 2.0 * weight_mixtest1
 
     # red and green should be greyish
-    result += mix_test_RGB(sds[0], sds[1], np.repeat(0.214, numwaves), 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
+    result += mix_test_RGB(sds[0], sds[1], np.repeat(0.214, 3), 0.5, tmat) ** 2.0 * weight_mixtest1 * 10
 
     # primaries should sum to ~one for each channel to help conserve energy or something
-    result += ((np.sum([sds[0], sds[1], sds[2]],axis=0) - MAX_REFLECTANCE) ** 2.0).sum() * weight_sum_to_one
+    result += ((np.sum(sds,axis=0) - MAX_REFLECTANCE) ** 2.0).sum() * weight_sum_to_one
 
     # each primary integral should be 1.0
-    result += ((np.sum([sds[0], sds[1], sds[2]],axis=1) - 1.0) ** 2.0).sum() * weight_sum_to_one
+    result += ((np.sum(sds,axis=1) - 1.0) ** 2.0).sum() * weight_sum_to_one
 
     # tmat center weight sum to one
     result += ((np.sum(tmat[1]) - 1.0) ** 2.0) * weight_sum_to_one

@@ -44,7 +44,7 @@ def processResult(a):
     red_xyz = spectral_to_XYZ(sds[0], spectral_to_XYZ_m)
     green_xyz = spectral_to_XYZ(sds[1], spectral_to_XYZ_m)
     blue_xyz = spectral_to_XYZ(sds[2], spectral_to_XYZ_m)
-    illuminant_xyz = spectral_to_XYZ([1.0, 1.0, 1.0], spectral_to_XYZ_m)
+    illuminant_xyz = spectral_to_XYZ(np.repeat(1.0, numwaves), spectral_to_XYZ_m)
     # illuminant_sd.name = str(illuminant_xyz)
     return (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz,
             sds, illuminant_xyz, tmat)
