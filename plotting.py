@@ -20,21 +20,13 @@ def draw_primaries(T_MATRIX_XYZ):
 
     uv_list = []
 
-    pigment_xyz = spectral_to_XYZ([1,0,0], T_MATRIX_XYZ)
-    xy = colour.XYZ_to_xy(pigment_xyz)
-    uv1 = colour.xy_to_Luv_uv(xy)
-    uv_list.append(uv1)
+    primaries = np.identity(n=numwaves)
 
-    pigment_xyz = spectral_to_XYZ([0,1,0], T_MATRIX_XYZ)
-    xy = colour.XYZ_to_xy(pigment_xyz)
-    uv2 = colour.xy_to_Luv_uv(xy)
-    uv_list.append(uv2)
-
-    pigment_xyz = spectral_to_XYZ([0,0,1], T_MATRIX_XYZ)
-    xy = colour.XYZ_to_xy(pigment_xyz)
-    uv3 = colour.xy_to_Luv_uv(xy)
-    uv_list.append(uv3)
-    uv_list.append(uv1)
+    for p in range(numwaves):
+        pigment_xyz = spectral_to_XYZ(primaries[p], T_MATRIX_XYZ)
+        xy = colour.XYZ_to_xy(pigment_xyz)
+        uv = colour.xy_to_Luv_uv(xy)
+        uv_list.append(uv)
 
     matplotlib.pyplot.plot(*zip(*uv_list), 'bo')
 
