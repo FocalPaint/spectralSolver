@@ -160,5 +160,5 @@ if __name__ == '__main__':
 
     
     if plotMixes:
-        draw_primaries(spectral_to_XYZ_m)
+        draw_primaries(spectral_to_XYZ_m, Spectral_to_Device_RGB_m)
         plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds)

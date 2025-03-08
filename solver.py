@@ -3,6 +3,8 @@ from tools import *
 from colour import (XYZ_to_xy, SpectralDistribution)
 from os.path import exists
 from os import remove
+from plotting import *
+import imageio
 
 # layout of the minimization parameter vector:
 # <primarySPDs->FOO_TO_XYZ_MATRIX
@@ -61,6 +63,18 @@ def mix_test(sda, sdb, targetsd, ratio, tmat):
     return diff
 
 def mix_test_RGB(sda, sdb, targetRGB, ratio, tmat):
+    mixed = spectral_Mix_WGM(sda, sdb, ratio)
+    mixedXYZ = spectral_to_XYZ(mixed, tmat)
+    mixedxy = XYZ_to_xy(mixedXYZ)
+    targetXYZ = colour.RGB_to_XYZ(targetRGB, illuminant_xy, illuminant_xy, RGB_to_XYZ_m)
+    targetxy = XYZ_to_xy(targetXYZ)
+
+    diff = np.linalg.norm(mixedxy - targetxy)
+    return diff
+
+def mix_test_RGB_RGB(rgbA, rgbB, targetRGB, ratio, tmat, sds):
+    sda = rgb_to_Spectral(rgbA, sds)
+    sdb = rgb_to_Spectral(rgbB, sds)
     mixed = spectral_Mix_WGM(sda, sdb, ratio)
     mixedXYZ = spectral_to_XYZ(mixed, tmat)
     mixedxy = XYZ_to_xy(mixedXYZ)
@@ -129,6 +143,12 @@ def plotProgress(xk, convergence):
     print("sd sums to one   ", sums * weight_sum_to_one, sums)
     print("`touch halt` to exit early with this solution.")
     print("---")
+
+    if exists("plot"):
+        print("plotting current solution. . .")
+        remove("plot")
+        draw_primaries(spectral_to_XYZ_m, Spectral_to_Device_RGB_m)
+        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds)
 
     if exists("halt"):
         print("halting early. . .")
