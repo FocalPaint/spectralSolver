@@ -19,6 +19,24 @@ def func(a):
 sd = np.repeat(0.0, numwaves)
 # whiteSpectrum = np.repeat(1.0, numwaves)
 
+class ImageWriter:
+    counter = 0 # used for view rotation or whatever
+    def __init__(self, filename):
+        self.filename = filename    # instance variable unique to each instance
+        self.writer = imageio.get_writer(filename, fps=30, mode='I')
+
+# setup writers for videos
+
+imageWriters = []
+
+for index, color in enumerate(colorset):
+    filename = f"{index}-curves.mp4"
+    writerCurves = ImageWriter(filename=filename)
+    filename = f"{index}-3d.mp4"
+    writer3d = ImageWriter(filename=filename)
+    filename = f"{index}-bars.mp4"
+    writerBars = ImageWriter(filename=filename)
+    imageWriters.append([writerCurves, writer3d, writerBars])
 
 def objectiveFunction(a):
 
@@ -93,6 +111,38 @@ def objectiveFunctionSingle(a, targetXYZ, spectral_to_XYZ_m):
     result = match_XYZ(a, targetXYZ, spectral_to_XYZ_m) * 1000.
     return result
 
+def plotProgress(xk, convergence):
+    (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
+    sds, illuminant_xyz, cmfs) = processResult(xk)
+    red_delta = np.linalg.norm(red_xyz - XYZ[0])
+    green_delta = np.linalg.norm(green_xyz - XYZ[1])
+    blue_delta = np.linalg.norm(blue_xyz - XYZ[2])
+    white_delta = np.linalg.norm(illuminant_xyz - white_XYZ)
+    sums = ((np.sum(sds,axis=0) - 1.0) ** 2.0).sum()
+
+    print("cost metric (smaller = better), weighted cost, actual cost value")
+    print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
+    print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
+    print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
+    print("white delta:      ", white_delta ** 2.0 * weight_illuminant_white, white_delta)
+    print("sd sums to one   ", sums * weight_sum_to_one, sums)
+    print("`touch halt` to exit early with this solution.")
+    print("---")
+
+    if exists("plot"):
+        print("plotting current solution. . .")
+        # remove("plot")
+        # draw_primaries(spectral_to_XYZ_m, Spectral_to_Device_RGB_m)
+        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds, imageWriters)
+
+    if exists("halt"):
+        print("halting early. . .")
+        remove("halt")
+        return True
+    else:
+        return False
+
+
 if __name__ == '__main__':
     spdBounds = (MIN_REFLECTANCE, MAX_REFLECTANCE)
     from itertools import repeat
@@ -159,6 +209,10 @@ if __name__ == '__main__':
             print(np.array2string(mspd, separator=', '))
 
     
-    if plotMixes:
-        draw_primaries(spectral_to_XYZ_m, Spectral_to_Device_RGB_m)
-        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds)
+    # if plotMixes:
+    #     draw_primaries(spectral_to_XYZ_m, Spectral_to_Device_RGB_m)
+    #     plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds, imageWriters)
+
+    for writers in imageWriters:
+        for writer in writers:
+            writer.writer.close()

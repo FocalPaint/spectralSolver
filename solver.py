@@ -4,7 +4,6 @@ from colour import (XYZ_to_xy, SpectralDistribution)
 from os.path import exists
 from os import remove
 from plotting import *
-import imageio
 
 # layout of the minimization parameter vector:
 # <primarySPDs->FOO_TO_XYZ_MATRIX
@@ -123,36 +122,3 @@ def minimize_slopes(sds):
     blue_diff = np.sum(np.diff(sds[2]) ** 2)
     diff = red_diff + green_diff + blue_diff
     return  diff
-
-
-
-def plotProgress(xk, convergence):
-    (waves, spectral_to_XYZ_m, spectral_to_RGB_m, Spectral_to_Device_RGB_m, red_xyz, green_xyz, blue_xyz, 
-    sds, illuminant_xyz, cmfs) = processResult(xk)
-    red_delta = np.linalg.norm(red_xyz - XYZ[0])
-    green_delta = np.linalg.norm(green_xyz - XYZ[1])
-    blue_delta = np.linalg.norm(blue_xyz - XYZ[2])
-    white_delta = np.linalg.norm(illuminant_xyz - white_XYZ)
-    sums = ((np.sum(sds,axis=0) - 1.0) ** 2.0).sum()
-
-    print("cost metric (smaller = better), weighted cost, actual cost value")
-    print("red delta:       ", red_delta ** 2.0 * weight_red, red_delta)
-    print("green delta:     ", green_delta ** 2.0 * weight_green, green_delta)
-    print("blue delta:      ", blue_delta ** 2.0 * weight_blue, blue_delta)
-    print("white delta:      ", white_delta ** 2.0 * weight_illuminant_white, white_delta)
-    print("sd sums to one   ", sums * weight_sum_to_one, sums)
-    print("`touch halt` to exit early with this solution.")
-    print("---")
-
-    if exists("plot"):
-        print("plotting current solution. . .")
-        remove("plot")
-        draw_primaries(spectral_to_XYZ_m, Spectral_to_Device_RGB_m)
-        plotColorMixes(spectral_to_XYZ_m, Spectral_to_Device_RGB_m, sds)
-
-    if exists("halt"):
-        print("halting early. . .")
-        remove("halt")
-        return True
-    else:
-        return False

@@ -10,6 +10,7 @@ colour_style()
 
 from settings import *
 from tools import *
+import time
 
 
 
@@ -53,10 +54,11 @@ def draw_primaries(T_MATRIX_XYZ, T_MATRIX_DEVICE):
     # plot_RGB_scatter(rgb_list, colorspacetarget, show_spectral_locus=True, points_size=40) 
 
 
-def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
+def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs, writers):
+    matplotlib.use('Agg')
     # generate additional columns with 25% and 10% intensity
     colors = colorset #np.concatenate((colorset, colorset *0.18, colorset * 0.09), axis=0)
-
+    writerCurves, writer3d, writerBars = writers
     # init destination image array
     srgb_colors = np.zeros([51,len(colors) * 3, 3])
     rgb_list = []
@@ -65,7 +67,7 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
         i = 0
         #print ("column", column *3 + 1)
         if column == 0:
-            colour.plotting.plot_RGB_colourspaces_in_chromaticity_diagram_CIE1976UCS(colourspaces=colorspace, standalone=False)
+            fig, ax = colour.plotting.plot_RGB_colourspaces_in_chromaticity_diagram_CIE1976UCS(colourspaces=colorspace, show=False)
         uv_list = []
         
         for i in range(0, 50):
@@ -87,29 +89,76 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
             # mix with perceptual RGB (OETF encoded before mixing)
             # srgb_colors[i][column*3 + 2] = colour.RGB_to_RGB(colorspace.cctf_encoding(np.array(color)) * ratio + (1. - ratio) * colorspace.cctf_encoding(np.array(color_target)), colorspace, colorspaceTargetDevice, apply_cctf_decoding=True, apply_cctf_encoding=True)
         
-        # matplotlib.pyplot.subplots(subplot_kw={'projection': '3d'})
-        
-        matplotlib.pyplot.plot(*zip(*uv_list))
-
-
+        ax.plot(*zip(*uv_list))
+        # matplotlib.pyplot.plot(*zip(*uv_list))
         
 
-        
-    render(
-    standalone=True)
+    start = time.time()
+    # fig.canvas.draw()
+    image = fig2rgb_array(fig)
+    writerCurves.writer.append_data(image)
+    fig.clear()
+    plt.cla()
+    plt.clf()
+    plt.close(fig)
+    # render(
+    # standalone=True)
+    print("curve plotting took:")
+    end = time.time()
+    print(end - start)
 
-    # print the image and make it bigger
+    start = time.time()
+    # # print the image and make it bigger
     plt.rcParams["axes.grid"] = False
-    plt.figure(figsize = (25,10))
+    # plt.figure(figsize = (25,10))
     plt.imshow(srgb_colors)
-    render(
-    standalone=True)
-    plot_RGB_scatter(rgb_list, colour.models.RGB_COLOURSPACE_P3_D65, show_spectral_locus=True, points_size=40) 
+    image = fig2rgb_array(plt.gcf())
+    # image = fig2rgb_array(plt.gcf()).repeat(12, axis=0).repeat(12, axis=1)
+    writerBars.writer.append_data(image)
+    fig.clear()
+    plt.cla()
+    plt.clf()
+    plt.close(fig)
+    print("bar plotting took:")
+    end = time.time()
+    print(end - start)
+    # render(
+    # standalone=True)
 
+    
+    start = time.time()
 
+    fig, ax = plot_RGB_scatter(rgb_list, colour.models.RGB_COLOURSPACE_P3_D65, show_spectral_locus=True, points_size=40, show=False) 
+    angle = writer3d.counter % 360.
+    writer3d.counter += 1
+    print(writer3d.counter)
+    angle_norm = (angle + 180.) % 360. - 180.
 
-def plotColorMixes(T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs):
+    # Cycle through a full rotation of elevation, then azimuth, roll, and all
+
+    elev = azim = roll = angle_norm
+
+    # Update the axis view and title
+    ax.view_init(elev, azim, roll)
+    image = fig2rgb_array(fig)
+    writer3d.writer.append_data(image)
+    fig.clear()
+    plt.cla()
+    plt.clf()
+    plt.close(fig)
+
+    print("3d plotting took:")
+    end = time.time()
+    print(end - start)
+
+import imageio
+
+def plotColorMixes(T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs, imageWriters):
     print("plot shows pigment mixes only")
     print("\ncolumns order goes linear rgb, spectral weighted geometric mean (pigment), then non-linear rgb (perceptual rgb?)")
-    for i in colorset:
-        draw_colors(i, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs)
+    for index, color in enumerate(colorset):
+        draw_colors(color, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs, imageWriters[index])
+
+def fig2rgb_array(fig):
+    fig.canvas.draw()
+    return np.asarray(fig.canvas.renderer.buffer_rgba())[:,:,:3]
