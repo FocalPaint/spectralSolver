@@ -77,7 +77,7 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs, writers
             # srgb_colors[i][column*3 + 0] = colour.RGB_to_RGB(np.array(color) * ratio + (1. - ratio) * np.array(color_target), colorspace, colorspaceTargetDevice, apply_cctf_decoding=False,apply_cctf_encoding=True)
             # mix with pigment/spectral upsampling and weighted geometric mean
             pigment_color = spectral_Mix_WGM((rgb_to_Spectral(color_target, primarySDs)), (rgb_to_Spectral(color, primarySDs)), ratio)
-            pigment_color_rgb = np.array(spectral_to_RGB(pigment_color, T_MATRIX_DEVICE))
+            pigment_color_rgb = np.array(spectral_to_RGB(pigment_color, T_MATRIX_DEVICE)).clip(0.0,1.0)
             if column < len(colorset):
                 pigment_xyz = spectral_to_XYZ(pigment_color, T_MATRIX_XYZ)
                 rgb_list.append(pigment_color_rgb.clip(0,1))
@@ -89,9 +89,41 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs, writers
             # mix with perceptual RGB (OETF encoded before mixing)
             # srgb_colors[i][column*3 + 2] = colour.RGB_to_RGB(colorspace.cctf_encoding(np.array(color)) * ratio + (1. - ratio) * colorspace.cctf_encoding(np.array(color_target)), colorspace, colorspaceTargetDevice, apply_cctf_decoding=True, apply_cctf_encoding=True)
         
-        ax.plot(*zip(*uv_list))
+        ax.plot(*zip(*uv_list), linewidth=3)
         # matplotlib.pyplot.plot(*zip(*uv_list))
         
+    # uv_list = []
+    # rgb_list = []
+
+    primaries_rgb_xyY = []
+    primaries = np.identity(n=numwaves)
+    for p in range(numwaves):
+        pigment_xyz = spectral_to_XYZ(primaries[p], T_MATRIX_XYZ)
+        xyY = colour.XYZ_to_xyY(pigment_xyz)
+        primary_color_rgb = tuple(np.array(spectral_to_RGB(primaries[p], T_MATRIX_DEVICE)).clip(0.0, 1.0))
+        primaries_rgb_xyY.append((primary_color_rgb, xyY))
+        
+        # rgb_list.append(colour.XYZ_to_RGB(pigment_xyz, colorspacetarget).clip(0,1))
+        # rgb_list.append(np.array(spectral_to_RGB(primaries[p], T_MATRIX_DEVICE)).clip(0,1))
+        xy = colour.XYZ_to_xy(pigment_xyz)
+        uv = colour.xy_to_Luv_uv(xy)
+        # uv_list.append(uv)
+        matplotlib.pyplot.plot(*zip(*[uv]), 'o', color=primary_color_rgb, markersize=10)
+      
+    # whitepoint
+    pigment_xyz = spectral_to_XYZ(primaries.sum(axis=1), T_MATRIX_XYZ)
+    # rgb_list.append(colour.XYZ_to_RGB(pigment_xyz, colorspacetarget).clip(0,1))
+    xy = colour.XYZ_to_xy(pigment_xyz)
+    uv = colour.xy_to_Luv_uv(xy)
+    # uv_list.append(uv)
+
+    matplotlib.pyplot.plot(*zip(*[uv]), 'ko', markersize=5)
+
+    # illuminatnt E
+    # uv_list = []
+    # uv_list.append(colour.xy_to_Luv_uv(colour.CCS_ILLUMINANTS['cie_2_1931']['E'].copy()))
+    # # uv = colour.xy_to_Luv_uv(illuminant_E_xy)
+    # matplotlib.pyplot.plot(*zip(*uv_list), 'ko', markersize=5)
 
     start = time.time()
     # fig.canvas.draw()
@@ -129,6 +161,9 @@ def draw_colors(color_target, T_MATRIX_XYZ, T_MATRIX_DEVICE, primarySDs, writers
     start = time.time()
 
     fig, ax = plot_RGB_scatter(rgb_list, colour.models.RGB_COLOURSPACE_P3_D65, show_spectral_locus=True, points_size=40, show=False) 
+    for primary in primaries_rgb_xyY:
+        rgb, xyY = primary
+        matplotlib.pyplot.plot(*zip(*[xyY]), 'o', color=rgb, markersize=10)
     angle = writer3d.counter % 360.
     writer3d.counter += 1
     print(writer3d.counter)
