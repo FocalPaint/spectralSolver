@@ -13,7 +13,7 @@ source ./bin/activate
 
 python3 -m pip install git+https://github.com/colour-science/colour@develop
 python3 -m pip install matplotlib
-python3 -m pip install scipy
+python3 -m pip install scipy networkx
 ```
 
 edit settings.py to adjust colorspace and parameters (if necessary).  The default is DisplayP3 and 12 spectral channels.  Look in tools.py to see how you can convert to/from and mix pigment colors in log.
